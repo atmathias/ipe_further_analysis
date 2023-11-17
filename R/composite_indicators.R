@@ -70,7 +70,36 @@ create_composites_verification <- function(input_df) {
              
             # protection 
     mutate(i.hh_with_child_outside_of_home = ifelse(progres_relationshiptofpname %in% c("Focal Point") & 
-                                                    child_currently_not_living_with_you == 1694, "yes", "no") 
+                                                    child_currently_not_living_with_you == 1694, "yes", "no"),
+           # i.hh_children_worked_forpayment = case_when(progres_relationshiptofpname %in% c("Focal Point") & 123 %in% c(1694) ~ "yes",
+           #                                             progres_relationshiptofpname %in% c("Focal Point") & 123 %in% c(1695) ~ "no",
+           #                                             TRUE ~ NA_character_),
+           i.avg_time_children_worked_forpayment = case_when(progres_relationshiptofpname %in% c("Focal Point") & 53 %in% c(1759) ~ "Between 1 and 13 hours",
+                                                             progres_relationshiptofpname %in% c("Focal Point") & 53 %in% c(1760) ~ "Between 14 and 42 hours",
+                                                             progres_relationshiptofpname %in% c("Focal Point") & 53 %in% c(1761) ~ "more than 42",
+                                                             progres_relationshiptofpname %in% c("Focal Point") & 53 %in% c(2473) ~ "No kid working",
+                                                             TRUE ~ NA_character_),
+           i.hh_children_worked_Hhchores = case_when(progres_relationshiptofpname %in% c("Focal Point") & 124 %in% c(1694) ~ "yes",
+                                                    progres_relationshiptofpname %in% c("Focal Point") & 124 %in% c(1695) ~ "no",
+                                                             TRUE ~ NA_character_),
+           i.avg_time_children_worked_HHchores = case_when(progres_relationshiptofpname %in% c("Focal Point") & 54 %in% c(1759, 2488) ~ "2488",
+                                                             progres_relationshiptofpname %in% c("Focal Point") & 54 %in% c(1760, 2489) ~ "2489",
+                                                             progres_relationshiptofpname %in% c("Focal Point") & 54 %in% c(2490) ~ "2490",
+                                                             progres_relationshiptofpname %in% c("Focal Point") & 54 %in% c(1761, 2491) ~ "2491",
+                                                             progres_relationshiptofpname %in% c("Focal Point") & 54 %in% c(2473, 2492) ~ "2492",
+                                                             TRUE ~ NA_character_),
+           i.hh_children_dangerous_work_conditions = case_when(progres_relationshiptofpname %in% c("Focal Point") & 55 %in% c(1762) ~ "1762",
+                                                               progres_relationshiptofpname %in% c("Focal Point") & 55 %in% c(1763) ~ "1763",
+                                                               progres_relationshiptofpname %in% c("Focal Point") & 55 %in% c(1764) ~ "1764",
+                                                               progres_relationshiptofpname %in% c("Focal Point") & 55 %in% c(1765) ~ "1765",
+                                                               progres_relationshiptofpname %in% c("Focal Point") & 55 %in% c(1766) ~ "1766",
+                                                               progres_relationshiptofpname %in% c("Focal Point") & 55 %in% c(1767) ~ "1767",
+                                                               progres_relationshiptofpname %in% c("Focal Point") & 55 %in% c(1768) ~ "1768",
+                                                               progres_relationshiptofpname %in% c("Focal Point") & 55 %in% c(1769) ~ "1769",
+                                                               progres_relationshiptofpname %in% c("Focal Point") & 55 %in% c(1770) ~ "1770",
+                                                               TRUE ~ NA_character_)
+           
+           
                       )
   select(-c(starts_with("int.")))
 
