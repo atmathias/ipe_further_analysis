@@ -30,7 +30,27 @@ df_questions_dap <- df_questions %>%
 
 # clean HH data
 data_path <- "inputs/clean_data_ipe_hh_sampled.xlsx"
-data_nms <- names(readxl::read_excel(path = data_path, n_max = 2000, sheet = "cleaned_data"))
+
+data_nms <- names(readxl::read_excel(path = data_path, n_max = 2000, sheet = "cleaned_data")) %>% 
+  mutate(today = as_date(today)) %>% 
+  filter(today >= as_date("2021-10-01"), today <= as_date("2022-11-30")) %>%
+  filter(settlement != "Kampala") %>% 
+  mutate(settlement = case_when(settlement %in% c("Adjumani") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Adjumani",
+                                settlement %in% c("Imvepi") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Imvepi",
+                                settlement %in% c("Bidibidi") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Bidibidi",
+                                settlement %in% c("Palorinya") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Palorinya",
+                                settlement %in% c("Kyaka Ii") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Kyaka Ii",
+                                settlement %in% c("Rhino") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Rhino",
+                                settlement %in% c("Kyangwali") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Kyangwali",
+                                settlement %in% c("Nakivale") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Nakivale",
+                                settlement %in% c("Rwamwanja") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Rwamwanja",
+                                settlement %in% c("Palabek") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Palabek",
+                                settlement %in% c("Kiryandongo") & (today >= as_date("2022-07-01")& today <= as_date("2022-07-31")) ~ "Kiryandongo",
+                                settlement %in% c("Palabek") & (today >= as_date("2022-10-01")& today <= as_date("2022-10-31")) ~ "Palabek",
+                                settlement %in% c("Lobule") & (today >= as_date("2022-02-01")& today <= as_date("2022-02-28")) ~ "Lobule",
+                                settlement %in% c("Oruchinga") & (today >= as_date("2021-10-01")& today <= as_date("2021-10-31")) ~ "Oruchinga",
+                                TRUE ~ NA_character_)) %>% 
+  filter(!is.na(settlement)) %>% 
 c_types <- ifelse(str_detect(string = data_nms, pattern = "_other$"), "text", "guess")
 df_hh_data <- readxl::read_excel(path = data_path, sheet = "cleaned_data", col_types = c_types, na = "NA") %>% 
   mutate(strata = paste0(settlement, "_refugee"))
@@ -38,16 +58,19 @@ df_hh_data <- readxl::read_excel(path = data_path, sheet = "cleaned_data", col_t
 # clean data
 data_path <- "inputs/combined_ipe_verif_data.csv"
 
-df_main_clean_data <- readr::read_csv(file =  data_path) %>%
-  rename(any_of(setNames(df_questions_dap$question_code, df_questions_dap$question_name))) %>%
+df_combined_verification_and_sample_data <- readr::read_csv(file =  data_path, na = "NULL") %>% 
+  filter(AnonymizedGrp %in% df_hh_data$anonymizedgroup) %>% 
+  left_join(df_hh_data, by = c("AnonymizedGrp" = "anonymizedgroup")) %>% 
+  select(businessunitname:settlement) %>% 
+  rename(any_of(setNames(df_questions_dap$question_code, df_questions_dap$question_name)))  %>%  
   mutate(across(.cols = any_of(df_questions_dap$question_name), .fns = ~as.character(.x)))
-
+         
 # population figures
 df_ref_pop <- read_csv("inputs/refugee_population_ipe.csv")
 
 # make composite indicator ------------------------------------------------
 
-df_with_composites <- df_main_clean_data %>%
+df_with_composites <- df_combined_verification_and_sample_data %>%
   create_composites_verification() %>% 
   mutate(settlement = progres_coalocationlevel2name,
          strata = paste0(settlement, "_refugee"))
@@ -73,7 +96,7 @@ ref_svy <- as_survey(.data = df_ref_with_weights, strata = strata, weights = wei
 
 df_main_analysis <- analysis_after_survey_creation(input_svy_obj = ref_svy,
                                                    
-                                                   input_dap = dap %>%filter(!variable %in% c("income_from_work_past_30_days", "engage_in_activities_because_not_enough_money_for_basic_needs")))
+                                                   input_dap = dap )
 # merge analysis
 
 combined_analysis <- df_main_analysis
