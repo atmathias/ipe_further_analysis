@@ -63,21 +63,17 @@ df_combined_verification_and_sample_data <- readr::read_csv(file =  data_path, n
   rename(difficulty_walking = "14", difficulty_lifting = "15", difficulty_selfcare = "16", difficulty_seeing = "26", 
          difficulty_hearing = "27", difficulty_remembering = "28", difficulty_communicating = "29", difficulty_emotions = "30", 
          medical_condition_lasted_3_months = "31", been_to_hospital_for_chronic_medical = "32", child_currently_not_living_with_you = "2",
-         children_working = "123", avt_working = "53", avt_working_hh = "54") %>% 
+         children_working = "123", avg_time_child_working_payment = "53", avt_working_hh = "54", worked_in_past_7_days = "40",
+         where_children_are_living = "3", children_5_17_years_working_to_support_hh_for_payment = "123", child_work_involve = "55",
+         children_supporting_household_chores = "124") %>% 
   mutate(hh_member_with_chronic_condition = medical_condition_lasted_3_months,
          hh_member_with_chronic_condition_access_healthcare = been_to_hospital_for_chronic_medical,
          hh_member_worked_past7days = worked_in_past_7_days) %>% 
-  # mutate(3 = case_when(3 %in% c(1698) ~ "Don't know",
-  #                      3 %in% c(1699) ~ "Under care of another family in Uganda (foster family)",
-  #                      3 %in% c(1700) ~ "Under care of another relative (kinship care arrangement) in Uganda)",
-  #                      3 %in% c(1701) ~ "Under care of another family in his/her country of origin",
-  #                      3 %in% c(1702) ~ "Living alone independently in another location",
-  #                      3 %in% c(1703) ~ "Living in a third country (not Uganda nor country of origin)",
-  #                      TRUE ~ NA_character_)) %>% 
+  
   filter(!is.na(settlement)) %>% 
   select(c(businessunitname:settlement)) 
 
-write_csv(df_combined_verification_and_sample_data, file = "outputs/data.csv")
+# write_csv(df_combined_verification_and_sample_data, file = "outputs/data.csv")
 # population figures
 df_ref_pop <- read_csv("inputs/refugee_population_ipe.csv")
 
