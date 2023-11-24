@@ -3,7 +3,7 @@
 create_composites_verification <- function(input_df) {
   input_df %>% 
     # demographic indicators
-    mutate(location_region = case_when(settlement %in% c("Kampala") ~ "Kampala",
+    mutate(region = case_when(settlement %in% c("Kampala") ~ "Kampala",
                                        settlement %in% c("Kyaka Ii", "Kyangwali", "Nakivale", "Oruchinga", "Rwamwanja") ~ "South West",
                                        settlement %in% c("Adjumani", "Bidibidi", "Imvepi", "Kiryandongo", "Lobule", "Palabek", "Palorinya", 
                                                          "Rhino") ~ "West Nile"),
@@ -18,12 +18,12 @@ create_composites_verification <- function(input_df) {
                                                      progres_age %in% c(25:59) ~ "age_25_59",
                                                      progres_age %in% c(60:100) ~ "age_greater_59"),
                  i.hh_member_disability_by_age_group_and_gender =  case_when(difficulty_seeing %in% c(1706 : 1707)|difficulty_hearing %in% c(1706 : 1707)|
-                                                                         difficulty_walking %in% c(1706 : 1707)|difficulty_remembering %in% c(1706 : 1707)|
-                                                                         difficulty_selfcare %in% c(1706 : 1707)|difficulty_communicating %in% c(1706 : 1707)~ "yes_disability", 
-                                                                         difficulty_seeing %in% c(1704 : 1705)|difficulty_hearing %in% c(1704 : 1705)|
-                                                                         difficulty_walking %in% c(1704 : 1705)|difficulty_remembering %in% c(11704 : 1705)|
-                                                                         difficulty_selfcare %in% c(1704 : 1705)|difficulty_communicating %in% c(1704 : 1705)~
-                                                                         "no_disability", TRUE ~ NA_character_),
+                                                       difficulty_walking %in% c(1706 : 1707)|difficulty_remembering %in% c(1706 : 1707)|
+                                                       difficulty_selfcare %in% c(1706 : 1707)|difficulty_communicating %in% c(1706 : 1707)~ "yes_disability", 
+                                                       difficulty_seeing %in% c(1704 : 1705)|difficulty_hearing %in% c(1704 : 1705)|
+                                                       difficulty_walking %in% c(1704 : 1705)|difficulty_remembering %in% c(11704 : 1705)|
+                                                       difficulty_selfcare %in% c(1704 : 1705)|difficulty_communicating %in% c(1704 : 1705)~
+                                                       "no_disability", TRUE ~ NA_character_),
                   
                   i.hh_with_disabled_member =  case_when(difficulty_seeing %in% c(1706 : 1707)|difficulty_hearing %in% c(1706 : 1707)|
                                                            difficulty_walking %in% c(1706 : 1707)|difficulty_remembering %in% c(1706 : 1707)|
@@ -61,18 +61,17 @@ create_composites_verification <- function(input_df) {
                                                                         progres_age %in% c(26:59) ~ "age_26_59",
                                                                         progres_age %in% c(60:100) ~ "age_greater_59"),
                    # protection
-                   i.hh_with_child_outside_of_home = case_when(progres_relationshiptofpname %in% c("Focal Point") & child_currently_not_living_with_you %in% c(1694) ~ "yes",
-                                                               progres_relationshiptofpname %in% c("Focal Point") & child_currently_not_living_with_you %in% c(1695) ~ "no",
-                                                               TRUE ~ NA_character_),
-             
-                   i.hh_with_child_outside_of_home = case_when(progres_relationshiptofpname %in% c("Focal Point") & 
-                                                 where_children_are_living %in% c("Under care of another family in Uganda (foster family)",
-                                              "Under care of another relative (kinship care arrangement) in Uganda)",
-                                              "Under care of another family in his/her country of origin",
-                                              "Living alone independently in another location",
-                                              "Living in a third country (not Uganda nor country of origin)"), ~ "yes",
-                                               progres_relationshiptofpname %in% c("Focal Point") & where_children_are_living %in% c("Don't know") ~ "dk",
-                                                       TRUE ~ NA_character_),
+                  # i.hh_with_child_outsid_of_home = case_when(progres_relationshiptofpname %in% c("Focal Point") & child_currently_not_living_with_you %in% c(1694) ~ "yes",
+                                                      # progres_relationshiptofpname %in% c("Focal Point") & child_currently_not_living_with_you %in% c(1695) ~ "no",
+                                                      # TRUE ~ NA_character_),
+           
+                   i.hh_with_child_outside_of_home_by_location = case_when(progres_relationshiptofpname %in% c("Focal Point") & where_children_are_living %in% c(1699) ~ "Under care of another family in Uganda (foster family)",
+                                                                   progres_relationshiptofpname %in% c("Focal Point") & where_children_are_living %in% c(1700) ~ "Under care of another relative (kinship care arrangement) in Uganda",
+                                                                   progres_relationshiptofpname %in% c("Focal Point") & where_children_are_living %in% c(1701) ~ "Under care of another family in his/her country of origin",
+                                                                   progres_relationshiptofpname %in% c("Focal Point") & where_children_are_living %in% c(1702) ~ "Living alone independently in another location",
+                                                                   progres_relationshiptofpname %in% c("Focal Point") & where_children_are_living %in% c(1703) ~ "Living in a third country (not Uganda nor country of origin)",
+                                                                   progres_relationshiptofpname %in% c("Focal Point") & where_children_are_living %in% c(1668) ~ "dk",
+                                                                       TRUE ~ NA_character_),
            
                    i.hh_children_worked_forpayment = case_when(progres_relationshiptofpname %in% c("Focal Point") & children_5_17_years_working_to_support_hh_for_payment %in% c(1694) ~ "yes",
                                                               progres_relationshiptofpname %in% c("Focal Point") &  children_5_17_years_working_to_support_hh_for_payment %in% c(1695) ~ "no",
@@ -91,28 +90,74 @@ create_composites_verification <- function(input_df) {
                                                         progres_relationshiptofpname %in% c("Focal Point") & avt_working_hh %in% c(1761, 2491) ~ "More than 43",
                                                         progres_relationshiptofpname %in% c("Focal Point") & avt_working_hh %in% c(2473, 2492) ~ "No kid working",
                                                                 TRUE ~ NA_character_),
-                i.hh_children_dangerous_work_conditions = case_when(progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1762 : 1770) ~ c(1762 : 1770),
-                                                        # progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1763) ~ "1763",
-                                                        # progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1764) ~ "1764",
-                                                        # progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1765) ~ "1765",
-                                                        # progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1766) ~ "1766",
-                                                        # progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1767) ~ "1767",
-                                                        # progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1768) ~ "1768",
-                                                        # progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1769) ~ "1769",
-                                                        # progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1770) ~ "1770",
+                i.hh_children_dangerous_work_conditions = case_when(
+                                                        progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1763) ~ "1763",
+                                                        progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1764) ~ "1764",
+                                                        progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1765) ~ "1765",
+                                                        progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1766) ~ "1766",
+                                                        progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1767) ~ "1767",
+                                                        progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1768) ~ "1768",
+                                                        progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1769) ~ "1769",
+                                                        progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1770) ~ "1770",
                                                         TRUE ~ NA_character_)) %>%
   
              # other analysis
              # mutate(int.age_dependant = ifelse(progres_age %in% c(0:14) | progres_age %in% c(65:100), 1, 0),
              #        int.age_independent = ifelse(progres_age %in% c(15:64), 1, 0)) %>%
              # summarise(
-             #   i.dependency_ratio = sum(int.age_dependant)/sum(int.age_independent)*100) %>% 
+             #   i.dependency_ratio = sum(int.age_dependant)/sum(int.age_independent)) %>% 
 
       select(-c(starts_with("int.")))
 }
-      
-      
-      
-      
-      
+ # creating composites sampled
+
+create_composites_sampled <- function(input_df) {
+  input_df %>%
+    mutate(region = case_when(settlement %in% c("Kampala") ~ "Kampala",
+                              settlement %in% c("Kyaka Ii", "Kyangwali", "Nakivale", "Oruchinga", "Rwamwanja") ~ "South West",
+                              settlement %in% c("Adjumani", "Bidibidi", "Imvepi", "Kiryandongo", "Lobule", "Palabek", "Palorinya", 
+                                                "Rhino") ~ "West Nile"),
+      # wash
+    i.total_water_volume_per_person = case_when(calc_total_volume_per_person < 15 ~ "less_than_15L_per_person_per_day",
+                                               calc_total_volume_per_person == 50 ~ "15L_per_person_per_day",
+                                               calc_total_volume_per_person > 15 ~ "more_than_15L_per_person_per_day"),
+    # shelter and nfi
+    int.sleeping_mat_num_average = !is.na(sleeping_mat_num)/hh_size,
+    i.sleeping_mat_num_average = case_when(int.sleeping_mat_num_average < 1 & sleeping_mat_cond %in% c("good", "moderate") ~ "below_1_per_person",
+                                         int.sleeping_mat_num_average == 1 & sleeping_mat_cond %in% c("good", "moderate") ~ "1_per_person",
+                                         int.sleeping_mat_num_average > 1 & sleeping_mat_cond %in% c("good", "moderate") ~ "above_1_per_person"), 
+    
+    int.blanket_num_average = !is.na(blanket_num)/hh_size,
+    i.blanket_num_average = case_when(int.blanket_num_average < 1 & blanket_cond %in% c("good", "moderate") ~ "below_1_per_person",
+                                     int.blanket_num_average == 1 & blanket_cond %in% c("good", "moderate") ~ "1_per_person",
+                                     int.blanket_num_average > 1 & blanket_cond %in% c("good", "moderate") ~ "above_1_per_person"), 
+    
+    int.mosquito_net_num_average = !is.na(mosquito_net_num)/hh_size,
+    i.mosquito_net_num_average = case_when(int.mosquito_net_num_average < 1 & mosquito_net_cond %in% c("good", "moderate") ~ "below_1_per_person",
+                                      int.mosquito_net_num_average == 1 & mosquito_net_cond %in% c("good", "moderate") ~ "1_per_person",
+                                      int.mosquito_net_num_average > 1 & mosquito_net_cond %in% c("good", "moderate") ~ "above_1_per_person"),
+    
+    i.water_containers_category = case_when((hh_size > 0 & hh_size <4)& jerry_can_cond %in%c("good", "moderate") ~ "between_1_and_3_HH_size",
+                                            (hh_size > 3 & hh_size <7)& jerry_can_cond %in%c("good", "moderate") ~ "between_4_and_6_HH_size",
+                                            (hh_size > 6 & hh_size <10)&jerry_can_cond %in%c("good", "moderate") ~ "between_7_and_9_HH_size",
+                                            (hh_size > 9)&jerry_can_cond %in%c("good", "moderate") ~ "10_or_more_HH_size"),
+    i.number_water_containers = ifelse(i.water_containers_category %in% c("between_1_and_3_HH_size", "between_4_and_6_HH_size", "between_7_and_9_HH_size",
+                                                                            "10_or_more_HH_size"), jerry_can_num, NA_character_),
+    
+    i.tarpauline_category = case_when((hh_size > 0 & hh_size <4)& tarpaulin_cond %in%c("good", "moderate") ~ "between_1_and_3_HH_size",
+                                            (hh_size > 3 & hh_size <7)& tarpaulin_cond %in%c("good", "moderate") ~ "between_4_and_6_HH_size",
+                                            (hh_size > 6 & hh_size <10)&tarpaulin_cond %in%c("good", "moderate") ~ "between_7_and_9_HH_size",
+                                            (hh_size > 9)&tarpaulin_cond %in%c("good", "moderate") ~ "10_or_more_HH_size"),
+    i.number_tarpaulin = ifelse(i.tarpauline_category %in% c("between_1_and_3_HH_size", "between_4_and_6_HH_size", "between_7_and_9_HH_size",
+                                                                          "10_or_more_HH_size"), tarpaulin_num, NA_character_),
+    
+    i.solar_lamp_num_category = case_when((hh_size > 0 & hh_size <4)& solar_lamp_num_cond %in%c("good", "moderate") ~ "between_1_and_3_HH_size",
+                                      (hh_size > 3 & hh_size <7)& solar_lamp_num_cond %in%c("good", "moderate") ~ "between_4_and_6_HH_size",
+                                      (hh_size > 6 & hh_size <10)&solar_lamp_num_cond %in%c("good", "moderate") ~ "between_7_and_9_HH_size",
+                                      (hh_size > 9)&solar_lamp_num_cond %in%c("good", "moderate") ~ "10_or_more_HH_size"),
+    i.number_solar_lamp_num = ifelse(i.solar_lamp_num_category %in% c("between_1_and_3_HH_size", "between_4_and_6_HH_size", "between_7_and_9_HH_size",
+                                                             "10_or_more_HH_size"), solar_lamp_num_num, NA_character_)) %>% 
+  
+  select(-c(starts_with("int.")))     
+}
 
