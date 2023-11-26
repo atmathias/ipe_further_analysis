@@ -101,12 +101,7 @@ create_composites_verification <- function(input_df) {
                                                         progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1770) ~ "1770",
                                                         TRUE ~ NA_character_)) %>%
   
-             # other analysis
-             # mutate(int.age_dependant = ifelse(progres_age %in% c(0:14) | progres_age %in% c(65:100), 1, 0),
-             #        int.age_independent = ifelse(progres_age %in% c(15:64), 1, 0)) %>%
-             # summarise(
-             #   i.dependency_ratio = sum(int.age_dependant)/sum(int.age_independent)) %>% 
-
+             
       select(-c(starts_with("int.")))
 }
  # creating composites sampled
@@ -115,7 +110,7 @@ create_composites_sampled <- function(input_df) {
   input_df %>%
     mutate(region = case_when(settlement %in% c("Kampala") ~ "Kampala",
                               settlement %in% c("Kyaka Ii", "Kyangwali", "Nakivale", "Oruchinga", "Rwamwanja") ~ "South West",
-                              settlement %in% c("Adjumani", "Bidibidi", "Imvepi", "Kiryandongo", "Lobule", "Palabek", "Palorinya", 
+                              settlement %in% c("Adjumani", "Bidibidi", "Imvepi", "Kiryandongo", "Lobule", "Palabek", "Palorinya",
                                                 "Rhino") ~ "West Nile"),
       # wash
     i.total_water_volume_per_person = case_when(calc_total_volume_per_person < 15 ~ "less_than_15L_per_person_per_day",
@@ -125,39 +120,83 @@ create_composites_sampled <- function(input_df) {
     int.sleeping_mat_num_average = !is.na(sleeping_mat_num)/hh_size,
     i.sleeping_mat_num_average = case_when(int.sleeping_mat_num_average < 1 & sleeping_mat_cond %in% c("good", "moderate") ~ "below_1_per_person",
                                          int.sleeping_mat_num_average == 1 & sleeping_mat_cond %in% c("good", "moderate") ~ "1_per_person",
-                                         int.sleeping_mat_num_average > 1 & sleeping_mat_cond %in% c("good", "moderate") ~ "above_1_per_person"), 
-    
+                                         int.sleeping_mat_num_average > 1 & sleeping_mat_cond %in% c("good", "moderate") ~ "above_1_per_person"),
+
     int.blanket_num_average = !is.na(blanket_num)/hh_size,
     i.blanket_num_average = case_when(int.blanket_num_average < 1 & blanket_cond %in% c("good", "moderate") ~ "below_1_per_person",
                                      int.blanket_num_average == 1 & blanket_cond %in% c("good", "moderate") ~ "1_per_person",
-                                     int.blanket_num_average > 1 & blanket_cond %in% c("good", "moderate") ~ "above_1_per_person"), 
-    
+                                     int.blanket_num_average > 1 & blanket_cond %in% c("good", "moderate") ~ "above_1_per_person"),
+
     int.mosquito_net_num_average = !is.na(mosquito_net_num)/hh_size,
     i.mosquito_net_num_average = case_when(int.mosquito_net_num_average < 1 & mosquito_net_cond %in% c("good", "moderate") ~ "below_1_per_person",
                                       int.mosquito_net_num_average == 1 & mosquito_net_cond %in% c("good", "moderate") ~ "1_per_person",
                                       int.mosquito_net_num_average > 1 & mosquito_net_cond %in% c("good", "moderate") ~ "above_1_per_person"),
-    
-    i.water_containers_category = case_when((hh_size > 0 & hh_size <4)& jerry_can_cond %in%c("good", "moderate") ~ "between_1_and_3_HH_size",
+
+    i.water_container_category = case_when((hh_size > 0 & hh_size <4)& jerry_can_cond %in%c("good", "moderate") ~ "between_1_and_3_HH_size",
                                             (hh_size > 3 & hh_size <7)& jerry_can_cond %in%c("good", "moderate") ~ "between_4_and_6_HH_size",
                                             (hh_size > 6 & hh_size <10)&jerry_can_cond %in%c("good", "moderate") ~ "between_7_and_9_HH_size",
                                             (hh_size > 9)&jerry_can_cond %in%c("good", "moderate") ~ "10_or_more_HH_size"),
-    i.number_water_containers = ifelse(i.water_containers_category %in% c("between_1_and_3_HH_size", "between_4_and_6_HH_size", "between_7_and_9_HH_size",
+    i.number_water_container = ifelse(i.water_container_category %in% c("between_1_and_3_HH_size", "between_4_and_6_HH_size", "between_7_and_9_HH_size",
                                                                             "10_or_more_HH_size"), jerry_can_num, NA_character_),
-    
-    i.tarpauline_category = case_when((hh_size > 0 & hh_size <4)& tarpaulin_cond %in%c("good", "moderate") ~ "between_1_and_3_HH_size",
+
+    i.tarpaulin_category = case_when((hh_size > 0 & hh_size <4)& tarpaulin_cond %in%c("good", "moderate") ~ "between_1_and_3_HH_size",
                                             (hh_size > 3 & hh_size <7)& tarpaulin_cond %in%c("good", "moderate") ~ "between_4_and_6_HH_size",
                                             (hh_size > 6 & hh_size <10)&tarpaulin_cond %in%c("good", "moderate") ~ "between_7_and_9_HH_size",
                                             (hh_size > 9)&tarpaulin_cond %in%c("good", "moderate") ~ "10_or_more_HH_size"),
-    i.number_tarpaulin = ifelse(i.tarpauline_category %in% c("between_1_and_3_HH_size", "between_4_and_6_HH_size", "between_7_and_9_HH_size",
+    i.number_tarpaulin = ifelse(i.tarpaulin_category %in% c("between_1_and_3_HH_size", "between_4_and_6_HH_size", "between_7_and_9_HH_size",
                                                                           "10_or_more_HH_size"), tarpaulin_num, NA_character_),
-    
-    i.solar_lamp_num_category = case_when((hh_size > 0 & hh_size <4)& solar_lamp_num_cond %in%c("good", "moderate") ~ "between_1_and_3_HH_size",
-                                      (hh_size > 3 & hh_size <7)& solar_lamp_num_cond %in%c("good", "moderate") ~ "between_4_and_6_HH_size",
-                                      (hh_size > 6 & hh_size <10)&solar_lamp_num_cond %in%c("good", "moderate") ~ "between_7_and_9_HH_size",
-                                      (hh_size > 9)&solar_lamp_num_cond %in%c("good", "moderate") ~ "10_or_more_HH_size"),
-    i.number_solar_lamp_num = ifelse(i.solar_lamp_num_category %in% c("between_1_and_3_HH_size", "between_4_and_6_HH_size", "between_7_and_9_HH_size",
-                                                             "10_or_more_HH_size"), solar_lamp_num_num, NA_character_)) %>% 
-  
-  select(-c(starts_with("int.")))     
+
+    i.solar_lamp_category = case_when((hh_size > 0 & hh_size <4)& solar_lamp_cond %in%c("good", "moderate") ~ "between_1_and_3_HH_size",
+                                      (hh_size > 3 & hh_size <7)& solar_lamp_cond %in%c("good", "moderate") ~ "between_4_and_6_HH_size",
+                                      (hh_size > 6 & hh_size <10)&solar_lamp_cond %in%c("good", "moderate") ~ "between_7_and_9_HH_size",
+                                      (hh_size > 9)& solar_lamp_cond %in%c("good", "moderate") ~ "10_or_more_HH_size"),
+    i.number_solar_lamp = ifelse(i.solar_lamp_category %in% c("between_1_and_3_HH_size", "between_4_and_6_HH_size", "between_7_and_9_HH_size",
+                                                             "10_or_more_HH_size"), solar_lamp_num, NA_character_),
+
+    i.kitchen_set_category = case_when((hh_size > 0 & hh_size <4)& kitchen_set_cond %in%c("good", "moderate") ~ "between_1_and_3_HH_size",
+                                      (hh_size > 3 & hh_size <7)& kitchen_set_cond %in%c("good", "moderate") ~ "between_4_and_6_HH_size",
+                                      (hh_size > 6 & hh_size <10)&kitchen_set_cond %in%c("good", "moderate") ~ "between_7_and_9_HH_size",
+                                      (hh_size > 9)& kitchen_set_cond %in%c("good", "moderate") ~ "10_or_more_HH_size"),
+    i.number_kitchen_set = ifelse(i.kitchen_set_category %in% c("between_1_and_3_HH_size", "between_4_and_6_HH_size", "between_7_and_9_HH_size",
+                                                              "10_or_more_HH_size"), kitchen_set_num, NA_character_),
+
+    int.monthly_meb_2001 = 440000/5,
+    int.monthly_expenditure = calc_monthly_expenditure/hh_size,
+
+    i.hh_avg_exp_vs_meb = ifelse(int.monthly_expenditure >= int.monthly_meb_2001,
+                                   "monthly_expenditure_greater_than_meb", "monthly_expenditure_less_than_meb"),
+
+    i.fcs = (cereal_grain_root_fcs*2 + pulses_fcs*3 + vegetables_fcs*1 + fruits_fcs*1 + meat_fcs*4 + milk_products_fcs*4 +
+                                                                                  sugar_fcs*0.5 + oil_fats_fcs*0.5),
+    i.fcs_category = case_when(i.fcs <= 21 ~ "Poor",
+                          i.fcs <= 35 ~ "Borderline",
+                          i.fcs <= 112 ~ "Acceptable")
+
+    ) %>%
+
+    select(-c(starts_with("int.")))
+}
+# mental health 
+
+   create_composites_mental_health <- function(input_df) {
+     input_df %>%
+     mutate(i.mental_health_age_category = case_when(
+                            individual_age > 11 & individual_age < 18 ~ "between_12_and_17_years",
+                            individual_age > 17 & individual_age < 26 ~ "between_18_and_25_years",
+                            individual_age > 25 & individual_age < 60 ~ "between_26_and_59_years",
+                            individual_age > 59 ~ "greater_than_59_years",
+                                               TRUE ~ NA_character_),
+
+         i.hh_member_mh_by_age_group_and_gender = ifelse(feel_so_afraid %in%c("all_of_the_time", "most_of_the_time")|
+                             feel_so_angry %in%c("all_of_the_time", "most_of_the_time")|
+                             feel_so_uninterested_in_things %in%c("all_of_the_time", "most_of_the_time")|
+                             feel_so_hopeless %in%c("all_of_the_time", "most_of_the_time")|
+                             feel_so_severely_upset_about_bad_things_that_happened %in%c("all_of_the_time", "most_of_the_time")|
+                             often_unable_to_carry_out_essential_activities_due_to_feelings %in%c("all_of_the_time", "most_of_the_time"),
+                            "mental_illness_yes", NA))
+       # group_by(uuid) %>%
+
+
+
 }
 
