@@ -31,8 +31,10 @@ df_questions_dap <- df_questions %>%
 data_path <- "inputs/clean_data_ipe_hh_sampled.xlsx"
 data_nms <- names(readxl::read_excel(path = data_path, n_max = 2000, sheet = "cleaned_data"))
 c_types <- ifelse(str_detect(string = data_nms, pattern = "_other$"), "text", "guess")
+
 df_hh_data <- readxl::read_excel(path = data_path, sheet = "cleaned_data", col_types = c_types, na = "NA") %>% 
   mutate(strata = paste0(settlement, "_refugee"))
+  
 
 # clean data
 data_path <- "inputs/combined_ipe_verif_data.csv"
@@ -45,36 +47,30 @@ df_combined_verification_and_sample_data <- readr::read_csv(file =  data_path, n
   mutate(today = as_date(today)) %>% 
   filter(today >= as_date("2021-10-01"), today <= as_date("2022-11-30")) %>%
   filter(settlement != "Kampala") %>% 
-  mutate(settlement = case_when(settlement %in% c("Adjumani") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Adjumani",
-                                settlement %in% c("Imvepi") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Imvepi",
-                                settlement %in% c("Bidibidi") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Bidibidi",
-                                settlement %in% c("Palorinya") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Palorinya",
-                                settlement %in% c("Kyaka Ii") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Kyaka Ii",
-                                settlement %in% c("Rhino") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Rhino",
-                                settlement %in% c("Kyangwali") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Kyangwali",
-                                settlement %in% c("Nakivale") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Nakivale",
-                                settlement %in% c("Rwamwanja") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Rwamwanja",
-                                settlement %in% c("Palabek") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) ~ "Palabek",
-                                settlement %in% c("Kiryandongo") & (today >= as_date("2022-07-01")& today <= as_date("2022-07-31")) ~ "Kiryandongo",
-                                settlement %in% c("Palabek") & (today >= as_date("2022-10-01")& today <= as_date("2022-10-31")) ~ "Palabek",
-                                settlement %in% c("Lobule") & (today >= as_date("2022-02-01")& today <= as_date("2022-02-28")) ~ "Lobule",
-                                settlement %in% c("Oruchinga") & (today >= as_date("2021-11-01")& today <= as_date("2021-11-30")) ~ "Oruchinga",
-                                TRUE ~ NA_character_)) %>% 
-  rename(difficulty_walking = "14", difficulty_lifting = "15", difficulty_selfcare = "16", difficulty_seeing = "26", 
+  filter(settlement %in% c("Adjumani") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) |
+           settlement %in% c("Imvepi") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30"))  |
+           settlement %in% c("Bidibidi") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) |
+           settlement %in% c("Palorinya") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) |
+           settlement %in% c("Kyaka Ii") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) |
+           settlement %in% c("Rhino") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) |
+           settlement %in% c("Kyangwali") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) |
+           settlement %in% c("Nakivale") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) |
+           settlement %in% c("Rwamwanja") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) |
+           settlement %in% c("Palabek") & (today >= as_date("2022-03-01")& today <= as_date("2022-06-30")) |
+           settlement %in% c("Kiryandongo") & (today >= as_date("2022-07-01")& today <= as_date("2022-07-31")) |
+           settlement %in% c("Palabek") & (today >= as_date("2022-10-01")& today <= as_date("2022-10-31")) |
+           settlement %in% c("Lobule") & (today >= as_date("2022-02-01")& today <= as_date("2022-02-28")) |
+           settlement %in% c("Oruchinga") & (today >= as_date("2021-11-01")& today <= as_date("2021-11-30"))) %>% 
+rename(difficulty_walking = "14", difficulty_lifting = "15", difficulty_selfcare = "16", difficulty_seeing = "26", 
          difficulty_hearing = "27", difficulty_remembering = "28", difficulty_communicating = "29", difficulty_emotions = "30", 
-         medical_condition_lasted_3_months = "31", been_to_hospital_for_chronic_medical = "32", child_currently_not_living_with_you = "2",
-         children_working = "123", avg_time_child_working_payment = "53", avt_working_hh = "54", worked_in_past_7_days = "40",
+         hh_member_with_chronic_condition = "31", hh_member_with_chronic_condition_access_healthcare = "32", child_currently_not_living_with_you = "2",
+         children_working = "123", avg_time_child_working_payment = "53", avt_working_hh = "54", hh_member_worked_past7days = "40",
          where_children_are_living = "3", children_5_17_years_working_to_support_hh_for_payment = "123", child_work_involve = "55",
-         children_supporting_household_chores = "124") %>% 
-  mutate(hh_member_with_chronic_condition = medical_condition_lasted_3_months,
-         hh_member_with_chronic_condition_access_healthcare = been_to_hospital_for_chronic_medical,
-         hh_member_worked_past7days = worked_in_past_7_days) %>% 
-  
+         children_supporting_household_chores = "124",  gender = progres_sexname) %>% 
   filter(!is.na(settlement)) %>% 
-  select(c(businessunitname:settlement)) 
+  select(c(businessunitname:relation_to_hoh)) 
 
-# write_csv(df_combined_verification_and_sample_data, file = "outputs/data.csv")
-# population figures
+ # population figures
 df_ref_pop <- read_csv("inputs/refugee_population_ipe.csv")
 
 # make composite indicator ------------------------------------------------
@@ -84,7 +80,7 @@ df_with_composites <- df_combined_verification_and_sample_data %>%
   mutate(settlement = progres_coalocationlevel2name,
     strata = paste0(settlement, "_refugee"))
 
-write_csv(df_with_composites, file = "outputs/compo.csv")
+ write_csv(df_with_composites, file = "outputs/compo.csv")
 
 # create weights ----------------------------------------------------------
 
@@ -138,4 +134,19 @@ full_analysis_long <- full_analysis_labels %>%
 
 # output analysis
 write_csv(full_analysis_long, paste0("outputs/", butteR::date_file_prefix(), "ipe_verification_further_analysis_sev.csv"), na="")
+
+
+# other analysis
+df_dependency_ration <- df_with_composites %>% 
+mutate(int.age_dependant = ifelse(progres_age %in% c(0:14) | progres_age %in% c(65:100), 1, 0),
+       int.age_independent = ifelse(progres_age %in% c(15:64), 1, 0)) %>%
+summarise(
+  i.dependency_ratio = sum(int.age_dependant)/sum(int.age_independent))
+ 
+
+         
+         
+         
+         
+
 
