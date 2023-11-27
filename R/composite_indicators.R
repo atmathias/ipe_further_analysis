@@ -7,11 +7,11 @@ create_composites_verification <- function(input_df) {
                                        settlement %in% c("Kyaka Ii", "Kyangwali", "Nakivale", "Oruchinga", "Rwamwanja") ~ "South West",
                                        settlement %in% c("Adjumani", "Bidibidi", "Imvepi", "Kiryandongo", "Lobule", "Palabek", "Palorinya", 
                                                          "Rhino") ~ "West Nile"),
-                 i.hoh_by_gender = ifelse(progres_relationshiptofpname %in% c("Focal Point"), progres_sexname, NA_character_),
-                  i.hoh_single_female = ifelse(progres_sexname %in% c("Female") & progres_relationshiptofpname %in% c("Focal Point") &
+                 i.hoh_by_gender = ifelse(relation_to_hoh %in% c("head_of_household"), gender, NA_character_),
+                  i.hoh_single_female = ifelse(gender %in% c("Female") & relation_to_hoh %in% c("head_of_household") &
                                                 progres_maritalstatusname %in% c("Single", "Divorced", "Separated", "Widowed"), 
                                                "yes", "no"),
-                  i.hoh_child = ifelse(progres_age <= 17 & progres_relationshiptofpname %in% c("Focal Point"), "yes", "no"),
+                  i.hoh_child = ifelse(progres_age <= 17 & relation_to_hoh %in% c("head_of_household"), "yes", "no"),
                   i.disability_age_group = case_when(progres_age %in% c(5:12) ~ "age_5_12",
                                                      progres_age %in% c(13:18) ~ "age_13_18",
                                                      progres_age %in% c(19:24) ~ "age_19_24",
@@ -32,11 +32,11 @@ create_composites_verification <- function(input_df) {
                                                            difficulty_walking %in% c(1704 : 1705)|difficulty_remembering %in% c(11704 : 1705)|
                                                            difficulty_selfcare %in% c(1704 : 1705)|difficulty_communicating %in% c(1704 : 1705)~
                                                            "no_disability", TRUE ~ NA_character_),
-                i.hoh_disability = ifelse(progres_relationshiptofpname %in% c("Focal Point") & i.hh_with_disabled_member %in% c("yes_disability"),
-                                            "yes_disability", "no_disability"), 
+                i.hoh_disability = case_when(relation_to_hoh %in% c("head_of_household") & i.hh_with_disabled_member %in% c("yes_disability")~ "yes_disability", 
+                                            relation_to_hoh %in% c("head_of_household") & i.hh_with_disabled_member %in% c("no_disability")~ "no_disability", 
+                                                                            TRUE ~ NA_character_),
                     # health indicators
-                  # i.hh_member_with_chronic_condition = case_when(medical_condition_lasted_3_months == "1694" ~ "yes",  
-                                                                 # medical_condition_lasted_3_months == "1695" ~ "no",  TRUE ~ NA_character_),
+                                                                                    # medical_condition_lasted_3_months == "1695" ~ "no",  TRUE ~ NA_character_),
                     i.chronic_illness_age_group = case_when(progres_age %in% c(0:2) ~ "age_0_2",
                                                      progres_age %in% c(3:5) ~ "age_3_5",
                                                      progres_age %in% c(6:12) ~ "age_6_12",
@@ -44,6 +44,9 @@ create_composites_verification <- function(input_df) {
                                                      progres_age %in% c(19:24) ~ "age_19_24",
                                                      progres_age %in% c(25:59) ~ "age_25_59",
                                                      progres_age %in% c(60:100) ~ "age_greater_59"),
+           
+           i.hh_member_with_chronic_condition_by_age_group = ifelse(hh_member_with_chronic_condition == "1694", "yes", NA_character_),
+                                                          
 
                    # i.hh_member_with_chronic_condition_by_age_group = ifelse(31 %in% c(1694), "yes", "no"),
 
@@ -61,19 +64,14 @@ create_composites_verification <- function(input_df) {
                                                                         progres_age %in% c(26:59) ~ "age_26_59",
                                                                         progres_age %in% c(60:100) ~ "age_greater_59"),
                    # protection
-                  # i.hh_with_child_outsid_of_home = case_when(progres_relationshiptofpname %in% c("Focal Point") & child_currently_not_living_with_you %in% c(1694) ~ "yes",
-                                                      # progres_relationshiptofpname %in% c("Focal Point") & child_currently_not_living_with_you %in% c(1695) ~ "no",
-                                                      # TRUE ~ NA_character_),
-           
-                   i.hh_with_child_outside_of_home_by_location = case_when(progres_relationshiptofpname %in% c("Focal Point") & where_children_are_living %in% c(1699) ~ "Under care of another family in Uganda (foster family)",
-                                                                   progres_relationshiptofpname %in% c("Focal Point") & where_children_are_living %in% c(1700) ~ "Under care of another relative (kinship care arrangement) in Uganda",
-                                                                   progres_relationshiptofpname %in% c("Focal Point") & where_children_are_living %in% c(1701) ~ "Under care of another family in his/her country of origin",
-                                                                   progres_relationshiptofpname %in% c("Focal Point") & where_children_are_living %in% c(1702) ~ "Living alone independently in another location",
-                                                                   progres_relationshiptofpname %in% c("Focal Point") & where_children_are_living %in% c(1703) ~ "Living in a third country (not Uganda nor country of origin)",
-                                                                   progres_relationshiptofpname %in% c("Focal Point") & where_children_are_living %in% c(1668) ~ "dk",
-                                                                       TRUE ~ NA_character_),
-           
-                   i.hh_children_worked_forpayment = case_when(progres_relationshiptofpname %in% c("Focal Point") & children_5_17_years_working_to_support_hh_for_payment %in% c(1694) ~ "yes",
+                   i.hh_with_child_outside_of_home = case_when(progres_relationshiptofpname %in% c("Focal Point") & child_currently_not_living_with_you %in% c(1694) ~ "yes",
+                                                              progres_relationshiptofpname %in% c("Focal Point") & child_currently_not_living_with_you %in% c(1695) ~ "no",
+                                                              TRUE ~ NA_character_),
+
+                   i.hh_with_child_outside_of_home_by_location = ifelse(i.hh_with_child_outside_of_home %in%c("yes"), 
+                                                                        where_children_are_living, NA_character_),
+             
+                  i.hh_children_worked_forpayment = case_when(progres_relationshiptofpname %in% c("Focal Point") & children_5_17_years_working_to_support_hh_for_payment %in% c(1694) ~ "yes",
                                                               progres_relationshiptofpname %in% c("Focal Point") &  children_5_17_years_working_to_support_hh_for_payment %in% c(1695) ~ "no",
                                                               TRUE ~ NA_character_),
                   i.avg_time_children_worked_forpayment = case_when(progres_relationshiptofpname %in% c("Focal Point") & avg_time_child_working_payment %in% c(1759) ~ "Between 1 and 13 hours",
