@@ -33,9 +33,10 @@ data_nms <- names(readxl::read_excel(path = data_path, n_max = 2000, sheet = "cl
 c_types <- ifelse(str_detect(string = data_nms, pattern = "_other$"), "text", "guess")
 
 df_hh_data <- readxl::read_excel(path = data_path, sheet = "cleaned_data", col_types = c_types, na = "NA") %>% 
-  mutate(strata = paste0(settlement, "_refugee"))
+  mutate(strata = paste0(settlement, "_refugee")) %>% 
+  filter()
   
-
+# write_csv(x = df_hh_data, file = "outputs/hh.csv")
 # clean data
 data_path <- "inputs/combined_ipe_verif_data.csv"
 
@@ -62,13 +63,24 @@ df_combined_verification_and_sample_data <- readr::read_csv(file =  data_path, n
            settlement %in% c("Lobule") & (today >= as_date("2022-02-01")& today <= as_date("2022-02-28")) |
            settlement %in% c("Oruchinga") & (today >= as_date("2021-11-01")& today <= as_date("2021-11-30"))) %>% 
 rename(difficulty_walking = "14", difficulty_lifting = "15", difficulty_selfcare = "16", difficulty_seeing = "26", 
-         difficulty_hearing = "27", difficulty_remembering = "28", difficulty_communicating = "29", difficulty_emotions = "30", 
-         hh_member_with_chronic_condition = "31", hh_member_with_chronic_condition_access_healthcare = "32", child_currently_not_living_with_you = "2",
+         difficulty_hearing = "27", difficulty_remembering = "28", difficulty_communicating = "29", difficulty_emotions = "30",
+       hh_member_with_chronic_condition = "31",hh_member_with_chronic_condition_access_healthcare = "32", child_currently_not_living_with_you = "2",
          children_working = "123", avg_time_child_working_payment = "53", avt_working_hh = "54", hh_member_worked_past7days = "40",
          where_children_are_living = "3", children_5_17_years_working_to_support_hh_for_payment = "123", child_work_involve = "55",
-         children_supporting_household_chores = "124",  gender = progres_sexname) %>% 
-  filter(!is.na(settlement)) %>% 
-  select(c(businessunitname:relation_to_hoh)) 
+         children_supporting_household_chores = "124", gender = progres_sexname) %>% 
+rename(spent_savings = "61", bought_food_on_credit_or_borrowed_money_for_food = "63", reduced_essential_non_food_expenditures_such_as_education_health = "64",
+         borrowed_money_to_cover_basic_needs_health_rent = "65", sold_household_goods = "66", sold_productive_assets_or_means_of_transport = "67", sold_sanitary_materials = "68",
+         changed_accommodation_to_reduce_expenditures = "69",  female_members_under_18_got_married = "70", 
+         consume_seed_stock_held_for_next_season = "71", harvested_immature_crops = "72", sold_house_or_land = "74",
+         rented_out_the_house = "75", sold_more_non_productive_animals_than_usual = "76", sold_last_female_animals = "77",
+         sent_hh_members_to_eat_elsewhere = "78", accepted_high_risk_illegal_exploitative_temporary_jobs = "79",
+         engaged_in_transactional_and_survival_sex = "80", sent_household_members_to_beg = "81", sent_children_to_work = "82",
+         withdrew_children_from_school = "83", relied_on_less_preferred__less_expensive_food = "84",
+         borrowed_food_or_relied_on_help = "85", reduced_numbers_of_meals_eaten_per_day = "86", reduced_portion_size_of_meals = "87",
+         restricted_consumption_of_adults_for_children = "88") %>% 
+  filter(!is.na(settlement)) %>%  
+   select(c(businessunitname:relation_to_hoh)) 
+
 
  # population figures
 df_ref_pop <- read_csv("inputs/refugee_population_ipe.csv")
@@ -80,7 +92,31 @@ df_with_composites <- df_combined_verification_and_sample_data %>%
   mutate(settlement = progres_coalocationlevel2name,
     strata = paste0(settlement, "_refugee"))
 
- write_csv(df_with_composites, file = "outputs/compo.csv")
+# more indicators
+new_indicators <- df_with_composites %>% 
+  mutate(int.hh_with_disabled_member =  case_when(difficulty_seeing %in% c(1706 , 1707)|difficulty_hearing %in% c(1706 , 1707)|
+                        difficulty_walking %in% c(1706 , 1707)|difficulty_remembering %in% c(1706 , 1707)|
+                        difficulty_selfcare %in% c(1706 , 1707)|difficulty_communicating %in% c(1706 , 1707)~ "yes_disability", 
+                        difficulty_seeing %in% c(1704 , 1705)|difficulty_hearing %in% c(1704 , 1705)|
+                        difficulty_walking %in% c(1704 , 1705)|difficulty_remembering %in% c(11704 , 1705)|
+                        difficulty_selfcare %in% c(1704 , 1705)|difficulty_communicating %in% c(1704 , 1705)~
+                        "no_disability", TRUE ~ NA_character_),
+   group_by(uuid) %>% 
+   summarise(
+       int.hh_disabled = paste(int.hh_with_disabled_member, collapse = " : ")
+     ) %>% 
+     mutate(i.hh_with_disabled_member =  case_when(str_detect(string = int.hh_disabled, pattern = "yes_disability") ~ "yes_disability",
+                                 str_detect(string = int.hh_disabled, pattern = "no_disability") ~ "no_disability",
+                                 str_detect(string = int.hh_disabled, pattern = NA_character_) ~ NA_character_)) 
+  )
+
+# merge data  and main household data
+df_hh_data_merged <- df_hh_data %>% 
+  left_join(new_indicators, by = c("anonymizedgroup" = "AnonymizedGrp"))
+
+write_csv(x =df_hh_data_merged, file = "outputs/household.csv")
+
+ # write_csv(df_with_composites, file = "outputs/compo.csv")
 
 # create weights ----------------------------------------------------------
 
@@ -107,7 +143,7 @@ df_main_analysis <- analysis_after_survey_creation(input_svy_obj = ref_svy,
 # merge analysis
 
 combined_analysis <- df_main_analysis
-
+# write_csv(x = df_main_analysis, file = "outputs/analysis.csv")
 # add labels
 full_analysis_labels <- combined_analysis %>%
   mutate(variable = ifelse(is.na(variable) | variable %in% c(""), variable_val, variable),
@@ -133,20 +169,48 @@ full_analysis_long <- full_analysis_labels %>%
          subset_1_val)
 
 # output analysis
-write_csv(full_analysis_long, paste0("outputs/", butteR::date_file_prefix(), "ipe_verification_further_analysis_sev.csv"), na="")
+write_csv(full_analysis_long, paste0("outputs/", butteR::date_file_prefix(), "_ipe_verification_further_analysis_sev.csv"), na="")
 
 
 # other analysis
-df_dependency_ration <- df_with_composites %>% 
-mutate(int.age_dependant = ifelse(progres_age %in% c(0:14) | progres_age %in% c(65:100), 1, 0),
-       int.age_independent = ifelse(progres_age %in% c(15:64), 1, 0)) %>%
-summarise(
-  i.dependency_ratio = sum(int.age_dependant)/sum(int.age_independent))
- 
+write_csv(x = df_ref_with_weights, file = "outputs/jjjj.csv")
 
-         
-         
-         
-         
+df_dep_ratio_with_weights <- df_ref_with_weights %>% 
+  summarise(
+    overall_dependency_ratio = sum(i.age_dependant)/sum(i.age_independent)
+  )
+
+df_dependency_ration <- df_with_composites %>% 
+    summarise(
+      overall_dependency_ratio = sum(i.age_dependant)/sum(i.age_independent))
+
+regional_dependency_ratio = df_with_composites %>%
+mutate(int.age_dependant = ifelse(progres_age %in% c(0:14) | progres_age %in% c(65:100), 1, 0),
+         int.age_independent = ifelse(progres_age %in% c(15:64), 1, 0)) %>%
+  group_by(region) %>% 
+  summarise(regional_dependency_ratio = sum(int.age_dependant)/sum(int.age_independent))
+    
+settlement_dependency_ratio = df_with_composites %>%
+  mutate(int.age_dependant = ifelse(progres_age %in% c(0:14) | progres_age %in% c(65:100), 1, 0),
+         int.age_independent = ifelse(progres_age %in% c(15:64), 1, 0)) %>%
+  group_by(settlement) %>% 
+  summarise(settlement_dependency_ratio = sum(int.age_dependant)/sum(int.age_independent))
+
+
+# lcsi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

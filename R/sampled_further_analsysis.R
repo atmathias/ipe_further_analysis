@@ -64,17 +64,21 @@ df_hh_data <- readxl::read_excel(path = data_path, sheet = "cleaned_data", col_t
            settlement %in% c("Oruchinga") & (today >= as_date("2021-11-01")& today <= as_date("2021-11-30"))) %>% 
   mutate(across(where(is.character))) %>% 
   rename(gender = progres_sexname) %>% 
-  select(c(today:gender)) 
+  select(c(today:gender))
+
+  #adding more indicators to the dataframe
 
 
-# loop
+# loop_mental health (mh)
 mental_health_loop <- readxl::read_excel(path = data_path, sheet = "mental_health", na = "NA") %>% 
-  rename(gender = individual_sex)
+  rename(gender = individual_sex) %>% 
+  mutate(across(where(is.character), str_to_lower))
 
+# add more indicators to the dataframe
 
-# write_csv(df_combined_verification_and_sample_data, file = "outputs/hahaha.csv")
-# population figures
-df_ref_pop_sampled <- read_csv("inputs/refugee_population_ipe.csv")
+# mental health -----------------------------------------------------------
+df_mental_health_data <- loop_support_data %>% 
+  inner_join(df_with_composites_mh, by = c("uuid" = "_submission__uuid"))
 
 # make composite indicator ------------------------------------------------
 
@@ -82,7 +86,84 @@ df_with_composites_sampled <- df_hh_data %>%
   create_composites_sampled() %>% 
   mutate(strata = paste0(settlement, "_refugee"))
 
- write_csv(df_with_composites_sampled, file = "outputs/sampled.csv")
+# add more indicators (convert to household)
+df_mh <- df_mental_health_data %>% 
+  mutate(i.hh_member_mh_by_age_group_and_gender = case_when(feel_so_afraid %in%c("all_of_the_time", "most_of_the_time")|
+                              feel_so_angry %in%c("all_of_the_time", "most_of_the_time")|
+                              feel_so_uninterested_in_things %in%c("all_of_the_time", "most_of_the_time")|
+                              feel_so_hopeless %in%c("all_of_the_time", "most_of_the_time")|
+                              feel_so_severely_upset_about_bad_things_that_happened %in%c("all_of_the_time", "most_of_the_time")|
+                              often_unable_to_carry_out_essential_activities_due_to_feelings %in%c("all_of_the_time", "most_of_the_time") ~
+                              "mental_illness_yes", 
+                            feel_so_afraid %in%c(",a_little_of_the_time", "some_of_the_time")|
+                              feel_so_angry %in%c(",a_little_of_the_time", "some_of_the_time")|
+                              feel_so_uninterested_in_things %in%c(",a_little_of_the_time", "some_of_the_time")|
+                              feel_so_hopeless %in%c(",a_little_of_the_time", "some_of_the_time")|
+                              feel_so_severely_upset_about_bad_things_that_happened %in%c(",a_little_of_the_time", "some_of_the_time")|
+                              often_unable_to_carry_out_essential_activities_due_to_feelings %in%c(",a_little_of_the_time", "some_of_the_time") ~
+                              "mental_illness_mild",  TRUE ~ "none")) %>% 
+  group_by(uuid) %>% 
+  summarise(
+    int.hh_mh_entries = paste(i.hh_member_mh_by_age_group_and_gender, collapse = " : ")
+  ) %>% 
+  mutate(i.hh_mh =  case_when(str_detect(string = int.hh_mh_entries, 
+                                                 pattern = "mental_illness_yes") ~ "mental_illness_yes",
+                                      str_detect(string = int.hh_mh_entries, 
+                                                 pattern = "mental_illness_mild") ~ "mental_illness_mild",
+                                      str_detect(string = int.hh_mh_entries, 
+                                                 pattern = "none") ~ "none")) 
+
+# merge data mental health  and main household data
+df_mh_data_merged <- df_with_composites_sampled %>% 
+  left_join(df_mh, by = "uuid")
+
+write_csv(x =df_mh_data_merged, file = "outputs/loop.csv")
+
+
+# population figures
+df_ref_pop_sampled <- read_csv("inputs/refugee_population_ipe.csv")
+
+# make composite for mental health
+df_with_composites_mh <- mental_health_loop %>%
+  create_composites_mental_health() 
+
+# mental health -----------------------------------------------------------
+df_mental_health_data <- loop_support_data %>% 
+  inner_join(df_with_composites_mh, by = c("uuid" = "_submission__uuid"))
+
+# add more indicators to mh (convert to household)
+df_mh <- df_mental_health_data %>% 
+  mutate(i.hh_member_mh_by_age_group_and_gender = case_when(feel_so_afraid %in%c("all_of_the_time", "most_of_the_time")|
+                              feel_so_angry %in%c("all_of_the_time", "most_of_the_time")|
+                              feel_so_uninterested_in_things %in%c("all_of_the_time", "most_of_the_time")|
+                              feel_so_hopeless %in%c("all_of_the_time", "most_of_the_time")|
+                              feel_so_severely_upset_about_bad_things_that_happened %in%c("all_of_the_time", "most_of_the_time")|
+                              often_unable_to_carry_out_essential_activities_due_to_feelings %in%c("all_of_the_time", "most_of_the_time") ~
+                              "mental_illness_yes", 
+                              feel_so_afraid %in%c(",a_little_of_the_time", "some_of_the_time")|
+                              feel_so_angry %in%c(",a_little_of_the_time", "some_of_the_time")|
+                              feel_so_uninterested_in_things %in%c(",a_little_of_the_time", "some_of_the_time")|
+                              feel_so_hopeless %in%c(",a_little_of_the_time", "some_of_the_time")|
+                              feel_so_severely_upset_about_bad_things_that_happened %in%c(",a_little_of_the_time", "some_of_the_time")|
+                              often_unable_to_carry_out_essential_activities_due_to_feelings %in%c(",a_little_of_the_time", "some_of_the_time") ~
+                              "mental_illness_mild",  TRUE ~ "none")) %>% 
+  group_by(uuid) %>% 
+  summarise(
+    int.hh_mh_entries = paste(i.hh_member_mh_by_age_group_and_gender, collapse = " : ")
+  ) %>% 
+  mutate(i.hh_mh_entries =  case_when(str_detect(string = int.hh_mh_entries, 
+                                                 pattern = "mental_illness_yes") ~ "mental_illness_yes",
+                                      str_detect(string = int.hh_mh_entries, 
+                                                 pattern = "mental_illness_mild") ~ "mental_illness_mild",
+                                      str_detect(string = int.hh_mh_entries, 
+                                                 pattern = "none") ~ "none")) 
+
+# merge data mental health  and main household data
+df_mh_data_merged <- df_mental_health_data %>% 
+  left_join(df_mh, by = "uuid")
+
+write_csv(x =df_mh_data_merged, file = "outputs/loop.csv")
+
 
 # create weights ----------------------------------------------------------
 
@@ -90,25 +171,33 @@ df_with_composites_sampled <- df_hh_data %>%
 ref_weight_table_sampled <- make_refugee_weight_table(input_df_ref = df_with_composites_sampled, 
                                               input_refugee_pop = df_ref_pop_sampled)
 df_ref_with_weights <- df_with_composites_sampled %>% 
-  left_join(ref_weight_table, by = "strata")
+  left_join(ref_weight_table_sampled, by = "strata")
+
+loop_support_data <- df_ref_with_weights %>% select(uuid, region, settlement, strata, weights)
 
 
-# set up design object ----------------------------------------------------
-
+# set up design object main _analysis ----------------------------------------------------
 
 ref_svy <- as_survey(.data = df_ref_with_weights, strata = strata, weights = weights)
 
 
 # analysis ----------------------------------------------------------------
-# columns without data (income_from_work_past_30_days, 
-#                       engage_in_activities_because_not_enough_money_for_basic_needs)
-
+# main analysis
 df_main_analysis <- analysis_after_survey_creation(input_svy_obj = ref_svy,
                                                    
                                                    input_dap = dap )
+
+
+
+# set up design object
+ref_svy_mental_health_loop <- as_survey(.data = df_mental_health_data, strata = strata, weights = weights)
+# analysis
+df_analysis_mental_health_loop <- analysis_after_survey_creation(input_svy_obj = ref_svy_mental_health_loop,
+                                                                 input_dap = dap)
+                                                                   
 # merge analysis
 
-combined_analysis <- df_main_analysis
+combined_analysis <- bind_rows(df_main_analysis, df_analysis_mental_health_loop)
 
 # add labels
 full_analysis_labels <- combined_analysis %>%
@@ -135,7 +224,7 @@ full_analysis_long <- full_analysis_labels %>%
          subset_1_val)
 
 # output analysis
-write_csv(full_analysis_long, paste0("outputs/", butteR::date_file_prefix(), "ipe_sampled_further_analysis_sev.csv"), na="")
+write_csv(full_analysis_long, paste0("outputs/", butteR::date_file_prefix(), "_ipe_sampled_mh_further_analysis_sev.csv"), na="")
 
  #further analysis analysis
 
@@ -164,13 +253,6 @@ df_settlement_median_water_container_per_hh_size <- df_with_composites_sampled %
     regional_disaggregation_median  = median(i.number_water_container, na.rm = TRUE) %>% 
     round(0))
 
-df_gender_median_water_container_per_hh_size <- df_with_composites_sampled %>% 
-  filter(!is.na(i.water_container_category), !is.na(gender)) %>% 
-  mutate(i.number_water_container = as.numeric(i.number_water_container)) %>% 
-  group_by(gender, i.water_container_category) %>% 
-  summarise(
-    gender_disaggregation_median  = median(i.number_water_container, na.rm = TRUE))
-
 
 # tarpaulin
 df_overall_median_tarpaulin_per_hh_size <- df_with_composites_sampled %>% 
@@ -194,12 +276,6 @@ df_settlement_median_tarpaulin_per_hh_size <- df_with_composites_sampled %>%
   summarise(
     settlement_disaggregation_median  = median(i.number_tarpaulin, na.rm = TRUE))
 
-df_gender_median_tarpaulin_per_hh_size <- df_with_composites_sampled %>% 
-  filter(!is.na(i.tarpaulin_category), !is.na(gender)) %>% 
-  mutate(i.number_tarpaulin = as.numeric(i.number_tarpaulin)) %>% 
-  group_by(gender) %>% 
-  summarise(
-    gender_disaggregation_median  = median(i.number_tarpaulin, na.rm = TRUE))
 
 # solar_lamp
 df_overall_median_solar_lamp_per_hh_size <- df_with_composites_sampled %>% 
@@ -223,12 +299,6 @@ df_settlelement_median_solar_lamp_per_hh_size <- df_with_composites_sampled %>%
   summarise(
     settlelement_disaggregation_median  = median(i.number_solar_lamp, na.rm = TRUE))
 
-df_gender_median_solar_lamp_per_hh_size <- df_with_composites_sampled %>% 
-  filter(!is.na(i.solar_lamp_category), !is.na(gender)) %>% 
-  mutate(i.number_solar_lamp = as.numeric(i.number_solar_lamp)) %>% 
-  group_by(gender, i.solar_lamp_category) %>% 
-  summarise(
-    gender_disaggregation_median  = median(i.number_solar_lamp, na.rm = TRUE))
 
 # kitchen set
 df_overall_median_kitchen_set_per_hh_size <- df_with_composites_sampled %>% 
@@ -252,17 +322,10 @@ df_settlelement_median_kitchen_set_per_hh_size <- df_with_composites_sampled %>%
   summarise(
     settlelement_disaggregation_median  = median(i.number_kitchen_set, na.rm = TRUE))
 
-df_gender_median_kitchen_set_per_hh_size <- df_with_composites_sampled %>% 
-  filter(!is.na(i.kitchen_set_category), !is.na(gender)) %>% 
-  mutate(i.number_kitchen_set = as.numeric(i.number_kitchen_set)) %>% 
-  group_by(gender, i.kitchen_set_category) %>% 
-  summarise(
-    gender_disaggregation_median  = median(i.number_kitchen_set, na.rm = TRUE))
 
+# mental illness
 
-
-
-
+summary_mh <- 
 
 
 
