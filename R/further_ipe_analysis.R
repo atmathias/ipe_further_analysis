@@ -33,8 +33,8 @@ data_nms <- names(readxl::read_excel(path = data_path, n_max = 2000, sheet = "cl
 c_types <- ifelse(str_detect(string = data_nms, pattern = "_other$"), "text", "guess")
 
 df_hh_data <- readxl::read_excel(path = data_path, sheet = "cleaned_data", col_types = c_types, na = "NA") %>% 
-  mutate(strata = paste0(settlement, "_refugee")) %>% 
-  filter()
+  mutate(strata = paste0(settlement, "_refugee")) 
+  
   
 # write_csv(x = df_hh_data, file = "outputs/hh.csv")
 # clean data
@@ -79,8 +79,9 @@ rename(spent_savings = "61", bought_food_on_credit_or_borrowed_money_for_food = 
          borrowed_food_or_relied_on_help = "85", reduced_numbers_of_meals_eaten_per_day = "86", reduced_portion_size_of_meals = "87",
          restricted_consumption_of_adults_for_children = "88") %>% 
   filter(!is.na(settlement)) %>%  
-   select(c(businessunitname:relation_to_hoh)) 
-
+  relocate(uuid, .after = relation_to_hoh) %>% 
+   select(c(businessunitname:uuid)) %>% 
+  mutate(across(where(is.character)))
 
  # population figures
 df_ref_pop <- read_csv("inputs/refugee_population_ipe.csv")
@@ -92,27 +93,101 @@ df_with_composites <- df_combined_verification_and_sample_data %>%
   mutate(settlement = progres_coalocationlevel2name,
     strata = paste0(settlement, "_refugee"))
 
+
 # more indicators
 new_indicators <- df_with_composites %>% 
-  mutate(int.hh_with_disabled_member =  case_when(difficulty_seeing %in% c(1706 , 1707)|difficulty_hearing %in% c(1706 , 1707)|
-                        difficulty_walking %in% c(1706 , 1707)|difficulty_remembering %in% c(1706 , 1707)|
-                        difficulty_selfcare %in% c(1706 , 1707)|difficulty_communicating %in% c(1706 , 1707)~ "yes_disability", 
-                        difficulty_seeing %in% c(1704 , 1705)|difficulty_hearing %in% c(1704 , 1705)|
-                        difficulty_walking %in% c(1704 , 1705)|difficulty_remembering %in% c(11704 , 1705)|
-                        difficulty_selfcare %in% c(1704 , 1705)|difficulty_communicating %in% c(1704 , 1705)~
+  mutate(int.hoh_single_female = ifelse(gender %in% c("Female") & relation_to_hoh %in% c("head_of_household") &
+                                        progres_maritalstatusname %in% c("Single", "Divorced", "Separated", "Widowed"), 
+                                      "yes", "no"),
+        int.hh_with_child_outside_of_home = case_when(progres_relationshiptofpname %in% c("Focal Point") & child_currently_not_living_with_you %in% c(1694) ~ "yes",
+                                                     progres_relationshiptofpname %in% c("Focal Point") & child_currently_not_living_with_you %in% c(1695) ~ "no",
+                                                     TRUE ~ NA_character_),
+        int.hh_with_disabled_member =  case_when(difficulty_seeing %in% c(1706 , 1707)|difficulty_hearing %in% c(1706 , 1707)|
+                                              difficulty_walking %in% c(1706 , 1707)|difficulty_remembering %in% c(1706 , 1707)|
+                                              difficulty_selfcare %in% c(1706 , 1707)|difficulty_communicating %in% c(1706 , 1707)~ "yes_disability", 
+                                              difficulty_seeing %in% c(1704 , 1705)|difficulty_hearing %in% c(1704 , 1705)|
+                                              difficulty_walking %in% c(1704 , 1705)|difficulty_remembering %in% c(11704 , 1705)|
+                                              difficulty_selfcare %in% c(1704 , 1705)|difficulty_communicating %in% c(1704 , 1705)~
                         "no_disability", TRUE ~ NA_character_),
+        int.hoh_child = ifelse(progres_age <= 17 & relation_to_hoh %in% c("head_of_household"), "yes", "no"),
+        int.hh_children_worked_forpayment = case_when(progres_relationshiptofpname %in% c("Focal Point") & children_5_17_years_working_to_support_hh_for_payment %in% c(1694) ~ "yes",
+                                                    progres_relationshiptofpname %in% c("Focal Point") &  children_5_17_years_working_to_support_hh_for_payment %in% c(1695) ~ "no",
+                                                    TRUE ~ NA_character_),
+        int.hh_with_child_outside_of_home_by_location = case_when(progres_relationshiptofpname %in% c("Focal Point") & 
+                                              where_children_are_living == 1699 ~ "Under care of another family in Uganda",
+                                              progres_relationshiptofpname %in% c("Focal Point") & 
+                                              where_children_are_living == 1700 ~ "Under care of another relative",
+                                              progres_relationshiptofpname %in% c("Focal Point") & 
+                                              where_children_are_living == 1701 ~ "Under care of another family-country of origin",
+                                              progres_relationshiptofpname %in% c("Focal Point") & 
+                                              where_children_are_living == 1702 ~ "Living alone independently in another location",
+                                              progres_relationshiptofpname %in% c("Focal Point") & 
+                                              where_children_are_living == 1703 ~ "Living in a third country ",
+                                              TRUE ~ NA_character_),
+        int.hh_children_worked_Hhchores = case_when(progres_relationshiptofpname %in% c("Focal Point") & children_supporting_household_chores %in% c(1694) ~ "yes",
+                                                  progres_relationshiptofpname %in% c("Focal Point") & children_supporting_household_chores %in% c(1695) ~ "no",
+                                                  TRUE ~ NA_character_),
+        int.hh_children_dangerous_work_conditions = case_when(
+                                              progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1763) ~ "1763",
+                                              progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1764) ~ "1764",
+                                              progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1765) ~ "1765",
+                                              progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1766) ~ "1766",
+                                              progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1767) ~ "1767",
+                                              progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1768) ~ "1768",
+                                              progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1769) ~ "1769",
+                                              progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1770) ~ "1770",
+                                              TRUE ~ NA_character_)
+  ) %>%
    group_by(uuid) %>% 
    summarise(
-       int.hh_disabled = paste(int.hh_with_disabled_member, collapse = " : ")
+       int.hh_disabled = paste(int.hh_with_disabled_member, collapse = " : "),
+       int.child_outside_of_home = paste(int.hh_with_child_outside_of_home, collapse = " : "),
+       int.single_female = paste(int.hoh_single_female, collapse = " : "),
+       int.child_hoh = paste(int.hoh_child, collapse = " : "),
+       int.child_worked_for_employment = paste(int.hh_children_worked_forpayment, collapse = " : "),
+       int.hh_child_outside_of_home_by_location = paste(int.hh_with_child_outside_of_home_by_location, collapse = " : "),
+       int.hh_child_worked_Hhchores = paste(int.hh_children_worked_Hhchores, collapse = " : "),
+       int.hh_child_dangerous_work_conditions = paste(int.hh_children_dangerous_work_conditions, collapse = " : "),
      ) %>% 
-     mutate(i.hh_with_disabled_member =  case_when(str_detect(string = int.hh_disabled, pattern = "yes_disability") ~ "yes_disability",
+  mutate(i.hh_with_disabled_member =  case_when(str_detect(string = int.hh_disabled, pattern = "yes_disability") ~ "yes_disability",
                                  str_detect(string = int.hh_disabled, pattern = "no_disability") ~ "no_disability",
-                                 str_detect(string = int.hh_disabled, pattern = NA_character_) ~ NA_character_)) 
-  )
+                                 str_detect(string = int.hh_disabled, pattern = NA_character_) ~ NA_character_),
+        i.hh_with_child_outside_of_home = case_when(str_detect(string = int.child_outside_of_home, pattern = "yes") ~ "yes",
+                            str_detect(string = int.child_outside_of_home, pattern = "no") ~ "no",
+                            str_detect(string = int.child_outside_of_home, pattern = NA_character_) ~ NA_character_),
+        i.hoh_single_female = ifelse(str_detect(string = int.single_female, pattern = "yes"), "yes", "no"),
+        i.hoh_child = ifelse(str_detect(string = int.child_hoh, pattern = "yes"), "yes", "no"),
+        i.hh_children_worked_forpayment = case_when(str_detect(string = int.child_worked_for_employment, pattern = "yes") ~ "yes",
+                                  str_detect(string = int.child_worked_for_employment, pattern = "no") ~ "no",
+                                  str_detect(string = int.child_worked_for_employment, pattern = NA_character_) ~ NA_character_),
+        i.hh_with_child_outside_of_home_by_location = case_when(str_detect(string = int.hh_child_outside_of_home_by_location, pattern = "Under care of another family in Uganda") ~ "Under care of another family in Uganda",
+                                  str_detect(string = int.hh_child_outside_of_home_by_location, pattern = "Under care of another relative") ~ "Under care of another relative",
+                                  str_detect(string = int.hh_child_outside_of_home_by_location, pattern = "Under care of another family-country of origin") ~ "Under care of another family-country of origin",
+                                  str_detect(string = int.hh_child_outside_of_home_by_location, pattern = "Living alone independently in another location") ~ "Living alone independently in another location",
+                                  str_detect(string = int.hh_child_outside_of_home_by_location, pattern = "Living in a third country") ~ "Living in a third country",
+                                  str_detect(string = int.hh_child_outside_of_home_by_location, pattern = NA_character_) ~ NA_character_),
+        i.hh_children_worked_Hhchores = case_when(str_detect(string = int.hh_child_worked_Hhchores, pattern = "yes") ~ "yes",
+                                  str_detect(string = int.hh_child_worked_Hhchores, pattern = "no") ~ "no",
+                                  str_detect(string = int.hh_child_worked_Hhchores, pattern = NA_character_) ~ NA_character_),
+        i.hh_children_dangerous_work_conditions = case_when(str_detect(string = int.hh_child_dangerous_work_conditions, pattern = "1763") ~ "1763",
+                                    str_detect(string = int.hh_child_dangerous_work_conditions, pattern = "1764") ~ "1764",
+                                    str_detect(string = int.hh_child_dangerous_work_conditions, pattern = "1765") ~ "1765",
+                                    str_detect(string = int.hh_child_dangerous_work_conditions, pattern = "1766") ~ "1766",
+                                    str_detect(string = int.hh_child_dangerous_work_conditions, pattern = "1767") ~ "1767",
+                                    str_detect(string = int.hh_child_dangerous_work_conditions, pattern = "1768") ~ "1768",
+                                    str_detect(string = int.hh_child_dangerous_work_conditions, pattern = "1769") ~ "1769",
+                                    str_detect(string = int.hh_child_dangerous_work_conditions, pattern = "1770") ~ "1770",
+                                    str_detect(string = int.hh_child_dangerous_work_conditions, pattern = NA_character_) ~ NA_character_),
+        
+  ) %>% 
+            
+            
+            
+  select(-c(starts_with("int.")))
 
 # merge data  and main household data
 df_hh_data_merged <- df_hh_data %>% 
-  left_join(new_indicators, by = c("anonymizedgroup" = "AnonymizedGrp"))
+  left_join(new_indicators, by = c("uuid"))
 
 write_csv(x =df_hh_data_merged, file = "outputs/household.csv")
 
