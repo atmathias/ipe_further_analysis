@@ -133,7 +133,7 @@ df_mental_health_data <- loop_support_data %>%
 
 # add more indicators to mh (convert to household)
 df_mh <- df_mental_health_data %>% 
-  mutate(i.hh_member_mh_by_age_group_and_gender = case_when(feel_so_afraid %in%c("all_of_the_time", "most_of_the_time")|
+  mutate(int.hh_member_mh_by_age_group_and_gender = case_when(feel_so_afraid %in%c("all_of_the_time", "most_of_the_time")|
                               feel_so_angry %in%c("all_of_the_time", "most_of_the_time")|
                               feel_so_uninterested_in_things %in%c("all_of_the_time", "most_of_the_time")|
                               feel_so_hopeless %in%c("all_of_the_time", "most_of_the_time")|
@@ -149,7 +149,7 @@ df_mh <- df_mental_health_data %>%
                               "mental_illness_mild",  TRUE ~ "none")) %>% 
   group_by(uuid) %>% 
   summarise(
-    int.hh_mh_entries = paste(i.hh_member_mh_by_age_group_and_gender, collapse = " : ")
+    int.hh_mh_entries = paste(int.hh_member_mh_by_age_group_and_gender, collapse = " : ")
   ) %>% 
   mutate(i.hh_mh_entries =  case_when(str_detect(string = int.hh_mh_entries, 
                                                  pattern = "mental_illness_yes") ~ "mental_illness_yes",
