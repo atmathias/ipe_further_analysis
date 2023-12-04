@@ -87,7 +87,7 @@ df_with_composites_sampled <- df_hh_data %>%
   mutate(strata = paste0(settlement, "_refugee"))
 
 # add more indicators (convert to household)
-df_mh <- df_mental_health_data %>% 
+df_mh_loop <- df_mental_health_data %>% 
   mutate(i.hh_member_mh_by_age_group_and_gender = case_when(feel_so_afraid %in%c("all_of_the_time", "most_of_the_time")|
                               feel_so_angry %in%c("all_of_the_time", "most_of_the_time")|
                               feel_so_uninterested_in_things %in%c("all_of_the_time", "most_of_the_time")|
@@ -95,7 +95,7 @@ df_mh <- df_mental_health_data %>%
                               feel_so_severely_upset_about_bad_things_that_happened %in%c("all_of_the_time", "most_of_the_time")|
                               often_unable_to_carry_out_essential_activities_due_to_feelings %in%c("all_of_the_time", "most_of_the_time") ~
                               "mental_illness_yes", 
-                            feel_so_afraid %in%c(",a_little_of_the_time", "some_of_the_time")|
+                              feel_so_afraid %in%c(",a_little_of_the_time", "some_of_the_time")|
                               feel_so_angry %in%c(",a_little_of_the_time", "some_of_the_time")|
                               feel_so_uninterested_in_things %in%c(",a_little_of_the_time", "some_of_the_time")|
                               feel_so_hopeless %in%c(",a_little_of_the_time", "some_of_the_time")|
@@ -115,9 +115,9 @@ df_mh <- df_mental_health_data %>%
 
 # merge data mental health  and main household data
 df_mh_data_merged <- df_with_composites_sampled %>% 
-  left_join(df_mh, by = "uuid")
+  left_join(df_mh_loop, by = "uuid")
 
-write_csv(x =df_mh_data_merged, file = "outputs/loop.csv")
+write_csv(x =df_mh_data_merged, file = "outputs/new_hh_sampled_data.csv")
 
 
 # population figures

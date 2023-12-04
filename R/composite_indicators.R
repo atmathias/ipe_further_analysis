@@ -126,8 +126,8 @@ create_composites_sampled <- function(input_df) {
                                                 "Rhino") ~ "West Nile"),
       # wash
     i.total_water_volume_per_person = case_when(calc_total_volume_per_person < 15 ~ "less_than_15L_per_person_per_day",
-                                               calc_total_volume_per_person == 50 ~ "15L_per_person_per_day",
-                                               calc_total_volume_per_person > 15 ~ "more_than_15L_per_person_per_day"),
+                                                  calc_total_volume_per_person == 50 ~ "15L_per_person_per_day",
+                                                  calc_total_volume_per_person > 15 ~ "more_than_15L_per_person_per_day"),
     # shelter and nfi
     int.sleeping_mat_num_average = sleeping_mat_num/hh_size,
     i.sleeping_mat_num_average = case_when(int.sleeping_mat_num_average < 1 & sleeping_mat_cond %in% c("good", "moderate") ~ "below_1_per_person",
@@ -172,24 +172,24 @@ create_composites_sampled <- function(input_df) {
     i.number_kitchen_set = ifelse(i.kitchen_set_category %in% c("between_1_and_3_HH_size", "between_4_and_6_HH_size", "between_7_and_9_HH_size",
                                                               "10_or_more_HH_size"), kitchen_set_num, NA_character_),
     
-    i.number_of_minutes_to_and_from_water_source = case_when(number_of_minutes_to_and_from_water_source <= 30 ~ "30_min_or_less",
-                                        (number_of_minutes_to_and_from_water_source > 30 & 
-                                        number_of_minutes_to_and_from_water_source <= 60) ~ "above_30mins_below_1hr",
-                                        number_of_minutes_to_and_from_water_source > 60 ~ "more_than_1hr",
+    i.number_of_minutes_to_and_from_water_source = case_when(number_of_minutes_to_and_from_water_source < 30 ~ "less_than_30_min",
+                                        (number_of_minutes_to_and_from_water_source >= 30) ~ "between_30_and_60_min",
+                                        number_of_minutes_to_and_from_water_source > 60 ~ "more_than_60_min",
                                         TRUE ~ NA_character_),
     
     
     
    
-    # int.monthly_meb_2001 = 440000/5,
-    # int.monthly_expenditure = calc_monthly_expenditure/hh_size,
-    # 
-    # i.hh_avg_exp_vs_meb = ifelse(int.monthly_expenditure >= int.monthly_meb_2001,
-    #                                "monthly_expenditure_greater_than_meb", "monthly_expenditure_less_than_meb"),
+    int.ind_monthly_meb_2001 = 440000/5,
+    int.ind_monthly_expenditure = calc_monthly_expenditure/hh_size,
 
+    i.hh_avg_exp_vs_meb = case_when(int.ind_monthly_expenditure > int.ind_monthly_meb_2001 ~ "monthly_expenditure_greater_than_meb",
+                                    int.ind_monthly_expenditure < int.ind_monthly_meb_2001 ~ "monthly_expenditure_less_than_meb",
+                                    int.ind_monthly_expenditure = int.ind_monthly_meb_2001 ~ "monthly_expenditure_equals_meb"),
+    
     i.fcs = (cereal_grain_root_fcs*2 + pulses_fcs*3 + vegetables_fcs*1 + fruits_fcs*1 + meat_fcs*4 + milk_products_fcs*4 +
                                                                                   sugar_fcs*0.5 + oil_fats_fcs*0.5),
-    i.fcs_category = case_when(i.fcs <= 21 ~ "Poor",
+    i.fcs_cat = case_when(i.fcs <= 21 ~ "Poor",
                           i.fcs <= 35 ~ "Borderline",
                           i.fcs <= 112 ~ "Acceptable")
 
@@ -208,7 +208,7 @@ create_composites_sampled <- function(input_df) {
                             (individual_age > 59) ~ "greater_than_59_years",
                                                TRUE ~ NA_character_),
 
-         i.hh_member_mh_by_age_group_and_gender = case_when(feel_so_afraid %in%c("all_of_the_time", "most_of_the_time")|
+         i.hh_member_mh_state = case_when(feel_so_afraid %in%c("all_of_the_time", "most_of_the_time")|
                              feel_so_angry %in%c("all_of_the_time", "most_of_the_time")|
                              feel_so_uninterested_in_things %in%c("all_of_the_time", "most_of_the_time")|
                              feel_so_hopeless %in%c("all_of_the_time", "most_of_the_time")|
@@ -221,8 +221,12 @@ create_composites_sampled <- function(input_df) {
                              feel_so_hopeless %in%c(",a_little_of_the_time", "some_of_the_time")|
                              feel_so_severely_upset_about_bad_things_that_happened %in%c(",a_little_of_the_time", "some_of_the_time")|
                              often_unable_to_carry_out_essential_activities_due_to_feelings %in%c(",a_little_of_the_time", "some_of_the_time") ~
-                             "mental_illness_mild",  TRUE ~ "none")) %>% 
+                             "mental_illness_mild",  TRUE ~ "none"),
+         
+         i.hh_member_mh_by_age = i.hh_member_mh_state,
+         i.hh_member_mh_by_gender = i.hh_member_mh_state) %>% 
      
      select(-c(starts_with("int.")))
 }
 
+   
