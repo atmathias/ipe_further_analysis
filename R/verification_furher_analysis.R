@@ -64,12 +64,12 @@ df_combined_verification <- readr::read_csv(file =  data_path, na = "NULL") %>%
            settlement %in% c("Oruchinga") & (today >= as_date("2021-11-01")& today <= as_date("2021-11-30"))) %>% 
 rename(difficulty_walking = "14", difficulty_lifting = "15", difficulty_selfcare = "16", difficulty_seeing = "26", 
          difficulty_hearing = "27", difficulty_remembering = "28", difficulty_communicating = "29", difficulty_emotions = "30",
-       hh_member_with_chronic_condition = "31",hh_member_with_chronic_condition_access_healthcare = "32", child_currently_not_living_with_you = "2",
+         hh_member_with_chronic_condition = "31",hh_member_with_chronic_condition_access_healthcare = "32", child_currently_not_living_with_you = "2",
          children_working = "123", avg_time_child_working_payment = "53", avt_working_hh = "54", hh_member_worked_past7days = "40",
          where_children_are_living = "3", children_5_17_years_working_to_support_hh_for_payment = "123", child_work_involve = "55",
          children_supporting_household_chores = "124", gender = progres_sexname, most_commonly_hh_need_rank_1 = "92",
-         most_commonly_hh_need_rank_2 = "104", most_commonly_hh_need_rank_3 = "105", children_attending_school = "118") %>% 
-rename(spent_savings = "61", bought_food_on_credit_or_borrowed_money_for_food = "63", reduced_essential_non_food_expenditures_such_as_education_health = "64",
+         most_commonly_hh_need_rank_2 = "104", most_commonly_hh_need_rank_3 = "105", children_attending_school = "118",
+         main_occupation_past_year = "36", spent_savings = "61", bought_food_on_credit_or_borrowed_money_for_food = "63", reduced_essential_non_food_expenditures_such_as_education_health = "64",
          borrowed_money_to_cover_basic_needs_health_rent = "65", sold_household_goods = "66", sold_productive_assets_or_means_of_transport = "67", sold_sanitary_materials = "68",
          changed_accommodation_to_reduce_expenditures = "69",  female_members_under_18_got_married = "70", 
          consume_seed_stock_held_for_next_season = "71", harvested_immature_crops = "72", sold_house_or_land = "74",
@@ -89,14 +89,13 @@ df_ref_pop <- read_csv("inputs/refugee_population_ipe.csv")
 
 # make composite indicator ------------------------------------------------
 
-df_with_composites <- df_combined_verification_and_sample_data %>%
+df_with_composites <- df_combined_verification %>%
   create_composites_verification() %>% 
   mutate(settlement = progres_coalocationlevel2name,
     strata = paste0(settlement, "_refugee"))
 
-
-# more indicators
-new_indicators <- df_with_composites %>% 
+# more indicators to add to hh data
+df_new_indicators <- df_combined_verification %>% 
   mutate(int.hoh_single_female = ifelse(gender %in% c("Female") & relation_to_hoh %in% c("head_of_household") &
                                         progres_maritalstatusname %in% c("Single", "Divorced", "Separated", "Widowed"), 
                                       "yes", "no"),
@@ -215,18 +214,19 @@ new_indicators <- df_with_composites %>%
         
   ) %>% 
             
-            
-            
   select(-c(starts_with("int.")))
 
-# merge data  and main household data
-df_hh_data_merged <- df_hh_data %>% 
-  left_join(new_indicators, by = c("uuid"))
+# add i.hoh_by_gender to new indicators
+df_hoh_with_new_indicators <- df_new_indicators %>% 
+  left_join(df_with_composites, by = "uuid") %>% 
+  relocate(i.hoh_by_gender, .after = uuid) %>%
+  select(c(uuid:i.lcsi_cat))
 
-write_csv(x =df_hh_data_merged, file = "outputs/household.csv")
+# write out new file
+ 
+# write_csv(x =df_hoh_with_new_indicators, file = "outputs/new_hh_indicators.csv")
 
- # write_csv(df_with_composites, file = "outputs/compo.csv")
-
+ 
 # create weights ----------------------------------------------------------
 
 # refugee weights
@@ -252,9 +252,9 @@ df_main_analysis <- analysis_after_survey_creation(input_svy_obj = ref_svy,
 # merge analysis
 
 combined_analysis <- df_main_analysis
-# write_csv(x = df_main_analysis, file = "outputs/analysis.csv")
+write_csv(x = df_main_analysis, file = "outputs/analysis.csv")
 # add labels
-full_analysis_labels <- combined_analysis %>%
+ full_analysis_labels <- combined_analysis %>%
   mutate(variable = ifelse(is.na(variable) | variable %in% c(""), variable_val, variable),
          select_type = "select_one") %>%
   mutate(variable_code = recode(variable, !!!setNames(df_questions_dap$question_code, df_questions_dap$question_name)),
@@ -282,12 +282,6 @@ write_csv(full_analysis_long, paste0("outputs/", butteR::date_file_prefix(), "_i
 
 
 # other analysis
-write_csv(x = df_ref_with_weights, file = "outputs/jjjj.csv")
-
-df_dep_ratio_with_weights <- df_ref_with_weights %>% 
-  summarise(
-    overall_dependency_ratio = sum(i.age_dependant)/sum(i.age_independent)
-  )
 
 df_dependency_ration <- df_with_composites %>% 
     summarise(
@@ -306,7 +300,7 @@ settlement_dependency_ratio = df_with_composites %>%
   summarise(settlement_dependency_ratio = sum(int.age_dependant)/sum(int.age_independent))
 
 
-# lcsi
+
 
 
 
