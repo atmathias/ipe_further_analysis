@@ -43,8 +43,8 @@ create_composites_verification <- function(input_df) {
                                                                               hh_member_with_chronic_condition == 1695 ~ "no",
                                                                               TRUE ~  NA_character_),
                         
-              i.hh_member_with_chronic_condition = hh_member_with_chronic_condition,
-              i.hh_member_with_chronic_condition_access_healthcare  = hh_member_with_chronic_condition_access_healthcare,
+              # i.hh_member_with_chronic_condition = hh_member_with_chronic_condition,
+              # i.hh_member_with_chronic_condition_access_healthcare  = hh_member_with_chronic_condition_access_healthcare,
               
                  
              i.hh_member_with_chronic_condition_access_healthcare_by_age_group = case_when(hh_member_with_chronic_condition_access_healthcare 
@@ -62,9 +62,9 @@ create_composites_verification <- function(input_df) {
                                                                 (progres_age > 59)  ~ "age_greater_59",
                                                                 TRUE ~ NA_character_),
            
-             i.hh_member_occupation_pastyear = main_occupation_past_year,
-             i.hh_member_occupation_pastyear_by_age = i.hh_member_occupation_pastyear,
-             i.hh_member_occupation_pastyear_by_gender = i.hh_member_occupation_pastyear,
+             # i.hh_member_occupation_pastyear = main_occupation_past_year,
+             # i.hh_member_occupation_pastyear_by_age = i.hh_member_occupation_pastyear,
+             # i.hh_member_occupation_pastyear_by_gender = i.hh_member_occupation_pastyear,
            
              i.hh_member_worked_past7days_age_group = case_when((progres_age >= 0 & progres_age <= 2) ~ "age_0_2",
                                                               (progres_age >= 3 & progres_age <=5) ~ "age_3_5",
@@ -74,8 +74,8 @@ create_composites_verification <- function(input_df) {
                                                               (progres_age >25 & progres_age <59) ~ "age_25_59",
                                                               (progres_age > 59)  ~ "age_greater_59",
                                                               TRUE ~ NA_character_),
-              i.hh_member_worked_past7days_by_age = hh_member_worked_past7days,
-              i.hh_member_worked_past7days_by_gender = hh_member_worked_past7days,
+              # i.hh_member_worked_past7days_by_age = hh_member_worked_past7days,
+              # i.hh_member_worked_past7days_by_gender = hh_member_worked_past7days,
                
            
                    # protection
@@ -102,15 +102,15 @@ create_composites_verification <- function(input_df) {
   i.most_commonly_hh_need_rank_2 = ifelse(progres_relationshiptofpname %in% c("Focal Point"), most_commonly_hh_need_rank_2, NA_character_),
   i.most_commonly_hh_need_rank_3 = ifelse(progres_relationshiptofpname %in% c("Focal Point"), most_commonly_hh_need_rank_3, NA_character_),
   
-  i.children_attending_school = children_attending_school,
+  # i.children_attending_school = children_attending_school,
   
   i.school_going_age_group = case_when((progres_age >=3 & progres_age <=5) ~ "age_3_5",
                                      (progres_age >=6 & progres_age <=12) ~ "age_6_12",
                                      (progres_age >=13 & progres_age <=18) ~ "age_13_18",
-                                     (progres_age >=19 & progres_age <=24) ~ "age_19_24"),
+                                     (progres_age >=19 & progres_age <=24) ~ "age_19_24")) %>% 
   
-  i.children_attending_school_by_age = children_attending_school,
-  i.children_attending_school_by_gender = children_attending_school) %>% 
+  # i.children_attending_school_by_age = !is.na(children_attending_school),
+  # i.children_attending_school_by_gender = !is.na(children_attending_school)) %>% 
   
   
  
