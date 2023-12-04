@@ -40,7 +40,7 @@ df_hh_data <- readxl::read_excel(path = data_path, sheet = "cleaned_data", col_t
 # clean data
 data_path <- "inputs/combined_ipe_verif_data.csv"
 
-df_combined_verification_and_sample_data <- readr::read_csv(file =  data_path, na = "NULL") %>% 
+df_combined_verification <- readr::read_csv(file =  data_path, na = "NULL") %>% 
   filter(AnonymizedGrp %in% df_hh_data$anonymizedgroup) %>% 
   left_join(df_hh_data, by = c("AnonymizedGrp" = "anonymizedgroup")) %>% 
   rename(any_of(setNames(df_questions_dap$question_code, df_questions_dap$question_name)))  %>%  
@@ -67,7 +67,8 @@ rename(difficulty_walking = "14", difficulty_lifting = "15", difficulty_selfcare
        hh_member_with_chronic_condition = "31",hh_member_with_chronic_condition_access_healthcare = "32", child_currently_not_living_with_you = "2",
          children_working = "123", avg_time_child_working_payment = "53", avt_working_hh = "54", hh_member_worked_past7days = "40",
          where_children_are_living = "3", children_5_17_years_working_to_support_hh_for_payment = "123", child_work_involve = "55",
-         children_supporting_household_chores = "124", gender = progres_sexname) %>% 
+         children_supporting_household_chores = "124", gender = progres_sexname, most_commonly_hh_need_rank_1 = "92",
+         most_commonly_hh_need_rank_2 = "104", most_commonly_hh_need_rank_3 = "105", children_attending_school = "118") %>% 
 rename(spent_savings = "61", bought_food_on_credit_or_borrowed_money_for_food = "63", reduced_essential_non_food_expenditures_such_as_education_health = "64",
          borrowed_money_to_cover_basic_needs_health_rent = "65", sold_household_goods = "66", sold_productive_assets_or_means_of_transport = "67", sold_sanitary_materials = "68",
          changed_accommodation_to_reduce_expenditures = "69",  female_members_under_18_got_married = "70", 
@@ -136,7 +137,34 @@ new_indicators <- df_with_composites %>%
                                               progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1768) ~ "1768",
                                               progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1769) ~ "1769",
                                               progres_relationshiptofpname %in% c("Focal Point") & child_work_involve %in% c(1770) ~ "1770",
-                                              TRUE ~ NA_character_)
+                                              TRUE ~ NA_character_),
+        int.lcsi_cat = case_when((spent_savings %in% c(1816, 1817)|bought_food_on_credit_or_borrowed_money_for_food %in% c(1816, 1817)|
+                                  borrowed_money_to_cover_basic_needs_health_rent %in% c(1816, 1817)|sold_household_goods %in% c(1816, 1817)|
+                                  sold_sanitary_materials %in% c(1816, 1817)|changed_accommodation_to_reduce_expenditures %in% c(1816, 1817)|
+                                  sold_more_non_productive_animals_than_usual %in% c(1816, 1817)|relied_on_less_preferred__less_expensive_food %in% c(1816, 1817)|
+                                  borrowed_food_or_relied_on_help %in% c(1816, 1817)) ~ "hh_lcsi_stress",
+                                 (spent_savings %in% c( 1818, 1819, 1820)|bought_food_on_credit_or_borrowed_money_for_food %in% c( 1818, 1819, 1820)|
+                                    borrowed_money_to_cover_basic_needs_health_rent %in% c( 1818, 1819, 1820)|sold_household_goods %in% c( 1818, 1819, 1820)|
+                                    sold_sanitary_materials %in% c( 1818, 1819, 1820)|changed_accommodation_to_reduce_expenditures %in% c( 1818, 1819, 1820)|
+                                    sold_more_non_productive_animals_than_usual %in% c( 1818, 1819, 1820)|relied_on_less_preferred__less_expensive_food %in% c( 1818, 1819, 1820)|
+                                    borrowed_food_or_relied_on_help %in% c( 1818, 1819, 1820)) ~ "hh_lcsi_none",
+                               (reduced_essential_non_food_expenditures_such_as_education_health %in% c(1816, 1817)|sold_productive_assets_or_means_of_transport %in% c(1816, 1817)|consume_seed_stock_held_for_next_season %in% c(1816, 1817)|
+                                  harvested_immature_crops %in% c(1816, 1817)| rented_out_the_house %in% c(1816, 1817)|sent_hh_members_to_eat_elsewhere %in% c(1816, 1817)|
+                                  sent_children_to_work %in% c(1816, 1817)|withdrew_children_from_school %in% c(1816, 1817)|
+                                  reduced_numbers_of_meals_eaten_per_day %in% c(1816, 1817)|reduced_portion_size_of_meals %in% c(1816, 1817)|
+                                  restricted_consumption_of_adults_for_children %in% c(1816, 1817))~ "hh_lcsi_crisis",
+                               (reduced_essential_non_food_expenditures_such_as_education_health %in% c(1818, 1819, 1820)|sold_productive_assets_or_means_of_transport %in% c(1818, 1819, 1820)|consume_seed_stock_held_for_next_season %in% c(1818, 1819, 1820)|
+                                 harvested_immature_crops %in% c(1818, 1819, 1820)| rented_out_the_house %in% c(1818, 1819, 1820)|sent_hh_members_to_eat_elsewhere %in% c(1818, 1819, 1820)|
+                                 sent_children_to_work %in% c(1818, 1819, 1820)|withdrew_children_from_school %in% c(1818, 1819, 1820)|
+                                 reduced_numbers_of_meals_eaten_per_day %in% c(1818, 1819, 1820)|reduced_portion_size_of_meals %in% c(1818, 1819, 1820)|
+                                 restricted_consumption_of_adults_for_children %in% c(1818, 1819, 1820))~ "hh_lcsi_none",
+                               (female_members_under_18_got_married %in% c(1816, 1817)|74 %in% c(1816, 1817)|sold_last_female_animals %in% c(1816, 1817)|accepted_high_risk_illegal_exploitative_temporary_jobs %in% c(1816, 1817)|
+                                  engaged_in_transactional_and_survival_sex %in% c(1816, 1817)|sent_household_members_to_beg %in% c(1816, 1817))~ 
+                                 "hh_lcsi_emergency",
+                               (female_members_under_18_got_married %in% c(1818, 1819, 1820)|74 %in% c(1818, 1819, 1820)|sold_last_female_animals %in% c(1818, 1819, 1820)|accepted_high_risk_illegal_exploitative_temporary_jobs %in% c(1818, 1819, 1820)|
+                                  engaged_in_transactional_and_survival_sex %in% c(1818, 1819, 1820)|sent_household_members_to_beg %in% c(1818, 1819, 1820))~ 
+                                 "hh_lcsi_none", TRUE ~ NA_character_)
+        
   ) %>%
    group_by(uuid) %>% 
    summarise(
@@ -148,6 +176,7 @@ new_indicators <- df_with_composites %>%
        int.hh_child_outside_of_home_by_location = paste(int.hh_with_child_outside_of_home_by_location, collapse = " : "),
        int.hh_child_worked_Hhchores = paste(int.hh_children_worked_Hhchores, collapse = " : "),
        int.hh_child_dangerous_work_conditions = paste(int.hh_children_dangerous_work_conditions, collapse = " : "),
+       int.lcsi_category = paste(int.lcsi_cat, collapse = " : ")
      ) %>% 
   mutate(i.hh_with_disabled_member =  case_when(str_detect(string = int.hh_disabled, pattern = "yes_disability") ~ "yes_disability",
                                  str_detect(string = int.hh_disabled, pattern = "no_disability") ~ "no_disability",
@@ -178,6 +207,11 @@ new_indicators <- df_with_composites %>%
                                     str_detect(string = int.hh_child_dangerous_work_conditions, pattern = "1769") ~ "1769",
                                     str_detect(string = int.hh_child_dangerous_work_conditions, pattern = "1770") ~ "1770",
                                     str_detect(string = int.hh_child_dangerous_work_conditions, pattern = NA_character_) ~ NA_character_),
+        i.lcsi_cat = case_when(str_detect(string = int.lcsi_category, pattern = "hh_lcsi_stress") ~ "hh_lcsi_stress",
+                               str_detect(string = int.lcsi_category, pattern = "hh_lcsi_crisis") ~ "hh_lcsi_crisis",
+                               str_detect(string = int.lcsi_category, pattern = "hh_lcsi_emergency") ~ "hh_lcsi_emergency",
+                               str_detect(string = int.lcsi_category, pattern = "hh_lcsi_none") ~ "hh_lcsi_none",
+                               str_detect(string = int.lcsi_category, pattern = NA_character_) ~ NA_character_)
         
   ) %>% 
             
