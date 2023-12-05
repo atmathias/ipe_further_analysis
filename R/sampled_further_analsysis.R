@@ -45,7 +45,7 @@ c_types <- ifelse(str_detect(string = data_nms, pattern = "_other$"), "text", "g
 
 df_hh_data <- readxl::read_excel(path = data_path, sheet = "cleaned_data", col_types = c_types, na = "NA") %>% 
   left_join(df_new_indicators, by = "uuid") %>% 
-  left_join(df_verification_data, by = c("anonymizedgroup" = "AnonymizedGrp")) %>%
+  left_join(df_verification_data, by = c("anonymizedgroup" = "AnonymizedGrp")) %>%  
   group_by(anonymizedgroup) %>% 
   filter(row_number() == 1) %>% 
   ungroup() %>% 
@@ -70,13 +70,11 @@ df_hh_data <- readxl::read_excel(path = data_path, sheet = "cleaned_data", col_t
   mutate(across(where(is.character))) %>% 
   rename(gender = progres_sexname) %>% 
   select(c(today:gender))
-
  
 # loop_mental health (mh)
   mental_health_loop <- readxl::read_excel(path = data_path, sheet = "mental_health", na = "NA") %>% 
   rename(gender = individual_sex) %>% 
   mutate(across(where(is.character), str_to_lower))
-
 
 # add more indicators (convert to household)
 df_mh_loop <- mental_health_loop %>% 
@@ -107,15 +105,9 @@ df_mh_loop <- mental_health_loop %>%
                                          pattern = "none") ~ "none")) %>% 
   select(-c(starts_with("int.")))
 
-# merge data mental health  and main household data
+# merge mental health  and main household data
 df_hh_data_merged <- df_hh_data %>% 
   left_join(df_mh_loop, by = "uuid")
-
-# write_csv(x =df_hh_data_merged, file = "outputs/new_hh_sampled_data.csv")
-
-# mental health -----------------------------------------------------------
-df_mental_health_data <- loop_support_data %>% 
-  inner_join(df_with_composites_mh, by = c("uuid" = "_submission__uuid"))
 
 # make composite indicator hh ------------------------------------------------
 
@@ -123,51 +115,15 @@ df_with_composites_sampled <- df_hh_data_merged %>%
   create_composites_sampled() %>% 
   mutate(strata = paste0(settlement, "_refugee"))
 
-# make composite for mental health
+# make composite for mental health individual data
 df_with_composites_mh <- mental_health_loop %>%
   create_composites_mental_health() 
 
+# write out the file to add to individual data
+# write_csv(x = df_with_composites_mh, file = "inputs/mh_individual_indicators.csv")
+
 # population figures
 df_ref_pop_sampled <- read_csv("inputs/refugee_population_ipe.csv")
-
-
-# mental health -----------------------------------------------------------
-df_mental_health_data <- loop_support_data %>% 
-  inner_join(df_with_composites_mh, by = c("uuid" = "_submission__uuid"))
-
-# add more indicators to mh (convert to household)
-df_mh <- df_mental_health_data %>% 
-  mutate(int.hh_member_mh_by_age_group_and_gender = case_when(feel_so_afraid %in%c("all_of_the_time", "most_of_the_time")|
-                              feel_so_angry %in%c("all_of_the_time", "most_of_the_time")|
-                              feel_so_uninterested_in_things %in%c("all_of_the_time", "most_of_the_time")|
-                              feel_so_hopeless %in%c("all_of_the_time", "most_of_the_time")|
-                              feel_so_severely_upset_about_bad_things_that_happened %in%c("all_of_the_time", "most_of_the_time")|
-                              often_unable_to_carry_out_essential_activities_due_to_feelings %in%c("all_of_the_time", "most_of_the_time") ~
-                              "mental_illness_yes", 
-                              feel_so_afraid %in%c(",a_little_of_the_time", "some_of_the_time")|
-                              feel_so_angry %in%c(",a_little_of_the_time", "some_of_the_time")|
-                              feel_so_uninterested_in_things %in%c(",a_little_of_the_time", "some_of_the_time")|
-                              feel_so_hopeless %in%c(",a_little_of_the_time", "some_of_the_time")|
-                              feel_so_severely_upset_about_bad_things_that_happened %in%c(",a_little_of_the_time", "some_of_the_time")|
-                              often_unable_to_carry_out_essential_activities_due_to_feelings %in%c(",a_little_of_the_time", "some_of_the_time") ~
-                              "mental_illness_mild",  TRUE ~ "none")) %>% 
-  group_by(uuid) %>% 
-  summarise(
-    int.hh_mh_entries = paste(int.hh_member_mh_by_age_group_and_gender, collapse = " : ")
-  ) %>% 
-  mutate(i.hh_mh_entries =  case_when(str_detect(string = int.hh_mh_entries, 
-                                                 pattern = "mental_illness_yes") ~ "mental_illness_yes",
-                                      str_detect(string = int.hh_mh_entries, 
-                                                 pattern = "mental_illness_mild") ~ "mental_illness_mild",
-                                      str_detect(string = int.hh_mh_entries, 
-                                                 pattern = "none") ~ "none")) 
-
-# merge data mental health  and main household data
-df_mh_data_merged <- df_mental_health_data %>% 
-  left_join(df_mh, by = "uuid")
-
-write_csv(x =df_mh_data_merged, file = "outputs/loop.csv")
-
 
 # create weights ----------------------------------------------------------
 
@@ -177,13 +133,9 @@ ref_weight_table_sampled <- make_refugee_weight_table(input_df_ref = df_with_com
 df_ref_with_weights <- df_with_composites_sampled %>% 
   left_join(ref_weight_table_sampled, by = "strata")
 
-loop_support_data <- df_ref_with_weights %>% select(uuid, region, settlement, strata, weights)
-
-
 # set up design object main _analysis ----------------------------------------------------
 
 ref_svy <- as_survey(.data = df_ref_with_weights, strata = strata, weights = weights)
-
 
 # analysis ----------------------------------------------------------------
 # main analysis
@@ -191,18 +143,11 @@ df_main_analysis <- analysis_after_survey_creation(input_svy_obj = ref_svy,
                                                    
                                                    input_dap = dap )
 
-
-
-# set up design object
-ref_svy_mental_health_loop <- as_survey(.data = df_mental_health_data, strata = strata, weights = weights)
-# analysis
-df_analysis_mental_health_loop <- analysis_after_survey_creation(input_svy_obj = ref_svy_mental_health_loop,
-                                                                 input_dap = dap)
-                                                                   
+       
 # merge analysis
 
-combined_analysis <- bind_rows(df_main_analysis, df_analysis_mental_health_loop)
-
+combined_analysis <- df_main_analysis
+write_csv(x = combined_analysis, file = "outputs/analyse.csv")
 # add labels
 full_analysis_labels <- combined_analysis %>%
   mutate(variable = ifelse(is.na(variable) | variable %in% c(""), variable_val, variable),
