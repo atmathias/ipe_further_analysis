@@ -34,9 +34,10 @@ c_types <- ifelse(str_detect(string = data_nms, pattern = "_other$"), "text", "g
 
 df_hh_data <- readxl::read_excel(path = data_path, sheet = "cleaned_data", col_types = c_types, na = "NA") %>% 
   mutate(strata = paste0(settlement, "_refugee")) 
+
+# mh loop data to add to individual tool
+df_mh_loop_data <- read_csv("inputs/")
   
-  
-# write_csv(x = df_hh_data, file = "outputs/hh.csv")
 # clean data
 data_path <- "inputs/combined_ipe_verif_data.csv"
 
@@ -69,7 +70,7 @@ rename(difficulty_walking = "14", difficulty_lifting = "15", difficulty_selfcare
          where_children_are_living = "3", children_5_17_years_working_to_support_hh_for_payment = "123", child_work_involve = "55",
          children_supporting_household_chores = "124", gender = progres_sexname, most_commonly_hh_need_rank_1 = "92",
          most_commonly_hh_need_rank_2 = "104", most_commonly_hh_need_rank_3 = "105", children_attending_school = "118",
-         main_occupation_past_year = "36", spent_savings = "61", bought_food_on_credit_or_borrowed_money_for_food = "63", reduced_essential_non_food_expenditures_such_as_education_health = "64",
+         spent_savings = "61", bought_food_on_credit_or_borrowed_money_for_food = "63", reduced_essential_non_food_expenditures_such_as_education_health = "64",
          borrowed_money_to_cover_basic_needs_health_rent = "65", sold_household_goods = "66", sold_productive_assets_or_means_of_transport = "67", sold_sanitary_materials = "68",
          changed_accommodation_to_reduce_expenditures = "69",  female_members_under_18_got_married = "70", 
          consume_seed_stock_held_for_next_season = "71", harvested_immature_crops = "72", sold_house_or_land = "74",
@@ -157,10 +158,10 @@ df_new_indicators <- df_combined_verification %>%
                                  sent_children_to_work %in% c(1818, 1819, 1820)|withdrew_children_from_school %in% c(1818, 1819, 1820)|
                                  reduced_numbers_of_meals_eaten_per_day %in% c(1818, 1819, 1820)|reduced_portion_size_of_meals %in% c(1818, 1819, 1820)|
                                  restricted_consumption_of_adults_for_children %in% c(1818, 1819, 1820))~ "hh_lcsi_none",
-                               (female_members_under_18_got_married %in% c(1816, 1817)|74 %in% c(1816, 1817)|sold_last_female_animals %in% c(1816, 1817)|accepted_high_risk_illegal_exploitative_temporary_jobs %in% c(1816, 1817)|
+                               (female_members_under_18_got_married %in% c(1816, 1817)|sold_house_or_land %in% c(1816, 1817)|sold_last_female_animals %in% c(1816, 1817)|accepted_high_risk_illegal_exploitative_temporary_jobs %in% c(1816, 1817)|
                                   engaged_in_transactional_and_survival_sex %in% c(1816, 1817)|sent_household_members_to_beg %in% c(1816, 1817))~ 
                                  "hh_lcsi_emergency",
-                               (female_members_under_18_got_married %in% c(1818, 1819, 1820)|74 %in% c(1818, 1819, 1820)|sold_last_female_animals %in% c(1818, 1819, 1820)|accepted_high_risk_illegal_exploitative_temporary_jobs %in% c(1818, 1819, 1820)|
+                               (female_members_under_18_got_married %in% c(1818, 1819, 1820)|sold_house_or_land %in% c(1818, 1819, 1820)|sold_last_female_animals %in% c(1818, 1819, 1820)|accepted_high_risk_illegal_exploitative_temporary_jobs %in% c(1818, 1819, 1820)|
                                   engaged_in_transactional_and_survival_sex %in% c(1818, 1819, 1820)|sent_household_members_to_beg %in% c(1818, 1819, 1820))~ 
                                  "hh_lcsi_none", TRUE ~ NA_character_)
         
@@ -188,7 +189,7 @@ df_new_indicators <- df_combined_verification %>%
         i.hh_children_worked_forpayment = case_when(str_detect(string = int.child_worked_for_employment, pattern = "yes") ~ "yes",
                                   str_detect(string = int.child_worked_for_employment, pattern = "no") ~ "no",
                                   str_detect(string = int.child_worked_for_employment, pattern = NA_character_) ~ NA_character_),
-        i.hh_with_child_outside_of_home_by_location = case_when(str_detect(string = int.hh_child_outside_of_home_by_location, pattern = "Under care of another family in Uganda") ~ "Under care of another family in Uganda",
+        i.hh_with_child_outside_of_home_by_childlocation = case_when(str_detect(string = int.hh_child_outside_of_home_by_location, pattern = "Under care of another family in Uganda") ~ "Under care of another family in Uganda",
                                   str_detect(string = int.hh_child_outside_of_home_by_location, pattern = "Under care of another relative") ~ "Under care of another relative",
                                   str_detect(string = int.hh_child_outside_of_home_by_location, pattern = "Under care of another family-country of origin") ~ "Under care of another family-country of origin",
                                   str_detect(string = int.hh_child_outside_of_home_by_location, pattern = "Living alone independently in another location") ~ "Living alone independently in another location",
@@ -219,12 +220,15 @@ df_new_indicators <- df_combined_verification %>%
 # add i.hoh_by_gender to new indicators
 df_hoh_with_new_indicators <- df_new_indicators %>% 
   left_join(df_with_composites, by = "uuid") %>% 
+  group_by(uuid) %>% 
+  filter(row_number() == 1) %>% 
+  ungroup() %>% 
   relocate(i.hoh_by_gender, .after = uuid) %>%
   select(c(uuid:i.lcsi_cat))
 
 # write out new file
  
-# write_csv(x =df_hoh_with_new_indicators, file = "outputs/new_hh_indicators.csv")
+ # write_csv(x =df_hoh_with_new_indicators, file = "inputs/new_hh_indicators.csv")
 
  
 # create weights ----------------------------------------------------------
@@ -252,7 +256,8 @@ df_main_analysis <- analysis_after_survey_creation(input_svy_obj = ref_svy,
 # merge analysis
 
 combined_analysis <- df_main_analysis
-write_csv(x = df_main_analysis, file = "outputs/analysis.csv")
+
+ # write_csv(x = df_main_analysis, file = "outputs/analysis.csv")
 # add labels
  full_analysis_labels <- combined_analysis %>%
   mutate(variable = ifelse(is.na(variable) | variable %in% c(""), variable_val, variable),
