@@ -23,10 +23,24 @@ create_composites_verification <- function(input_df) {
                                                        "no_disability", TRUE ~ NA_character_),
 
 
-                i.hh_member_disability_by_age_group = i.hh_member_disability,
-                i.disability_age_group_by_gender =  case_when(i.hh_member_disability %in% c("yes_disability") ~ i.disability_age_group,
-                                                              i.hh_member_disability %in% c("no_disability") ~ i.disability_age_group,
-                                                              TRUE ~ NA_character_),
+                i.hh_member_disability_by_age_group = ifelse(!is.na(i.hh_member_disability), i.hh_member_disability,
+                                                             NA_character_),
+           
+               i.disability_age_group_5_12 = ifelse(i.disability_age_group %in% c("age_5_12"), 
+                                                i.hh_member_disability, NA_character_), 
+               i.disability_age_group_13_18 = ifelse(i.disability_age_group %in% c("age_13_18"), 
+                                                    i.hh_member_disability, NA_character_), 
+               i.disability_age_group_19_24 = ifelse(i.disability_age_group %in% c("age_19_24"), 
+                                                    i.hh_member_disability, NA_character_), 
+               i.disability_age_group_25_59 = ifelse(i.disability_age_group %in% c("age_25_59"), 
+                                                    i.hh_member_disability, NA_character_), 
+               i.disability_age_group_above_59 = ifelse(i.disability_age_group %in% c("age_greater_59"), 
+                                                    i.hh_member_disability, NA_character_), 
+                                                                                      
+                # i.age_group_disability_yes = ifelse(i.hh_member_disability %in% c("yes_disability"), i.disability_age_group,
+                #                                             NA_character_),
+                # i.age_group_disability_no = ifelse(i.hh_member_disability %in% c("no_disability"), i.disability_age_group,
+                #                                NA_character_),
 
                 i.hoh_disability = case_when(relation_to_hoh %in% c("head_of_household") & i.hh_member_disability %in% c("yes_disability")~ "yes_disability",
                                              relation_to_hoh %in% c("head_of_household") & i.hh_member_disability %in% c("no_disability")~ "no_disability",
@@ -55,7 +69,7 @@ create_composites_verification <- function(input_df) {
 
                   # livelihoods indicators
 
-              i.hh_member_occupation_age_group = case_when((progres_age >0 & progres_age <5) ~ "age_1_4",
+            i.hh_member_occupation_age_group = case_when((progres_age >0 & progres_age <5) ~ "age_1_4",
                                                                 (progres_age >4 & progres_age <12) ~ "age_5_11",
                                                                 (progres_age >11 & progres_age <18) ~ "age_12_17",
                                                                 (progres_age >17 & progres_age <26) ~ "age_18_25",
@@ -63,23 +77,56 @@ create_composites_verification <- function(input_df) {
                                                                 (progres_age > 59)  ~ "age_greater_59",
                                                                 TRUE ~ NA_character_),
 
-             i.hh_member_occupation_pastyear_by_age_group = ifelse(!is.na(main_occupation_past_year), main_occupation_past_year,
-                                                                   NA_character_),
-             i.hh_member_occupation_age_group_by_gender = ifelse(!is.na(main_occupation_past_year), i.hh_member_occupation_age_group,
-                                                       NA_character_),
+           i.hh_member_occupation_pastyear_by_age_group = ifelse(!is.na(main_occupation_past_year), 
+                                                                        main_occupation_past_year, NA_character_),
            
-             i.hh_member_worked_past7days_age_group = case_when((progres_age >0 & progres_age <5) ~ "age_1_4",
+           i.hh_member_occupation_age_group_1_4 = ifelse(i.hh_member_occupation_age_group %in% c("age_1_4"), 
+                                                          main_occupation_past_year, NA_character_),
+           i.hh_member_occupation_age_group_5_11 = ifelse(i.hh_member_occupation_age_group %in% c("age_5_11"), 
+                                                          main_occupation_past_year, NA_character_),
+           i.hh_member_occupation_age_group_12_17 = ifelse(i.hh_member_occupation_age_group %in% c("age_12_17"),
+                                                          main_occupation_past_year, NA_character_),
+           i.hh_member_occupation_age_group_18_25 = ifelse(i.hh_member_occupation_age_group %in% c("age_18_25"), 
+                                                          main_occupation_past_year, NA_character_),
+           i.hh_member_occupation_age_group_26_59 = ifelse(i.hh_member_occupation_age_group %in% c("age_26_59"), 
+                                                          main_occupation_past_year, NA_character_),
+           i.hh_member_occupation_age_group_above_59 = ifelse(i.hh_member_occupation_age_group %in% c("age_greater_59"), 
+                                                          main_occupation_past_year, NA_character_),
+  
+            i.hh_member_worked_past7days_age_category = case_when((progres_age >0 & progres_age <5) ~ "age_1_4",
                                                                 (progres_age >4 & progres_age <12) ~ "age_5_11",
                                                                 (progres_age >11 & progres_age <18) ~ "age_12_17",
                                                                 (progres_age >17 & progres_age <26) ~ "age_18_25",
                                                                 (progres_age >24 & progres_age <60) ~ "age_26_59",
                                                                 (progres_age > 59)  ~ "age_greater_59",
                                                                 TRUE ~ NA_character_),
-              
-              i.hh_member_worked_past7days_by_age_group = ifelse(!is.na(worked_in_past_7_days), worked_in_past_7_days,
-                                                                 NA_character_),
-              i.hh_member_worked_past7days_age_grp_by_gender = ifelse(!is.na(worked_in_past_7_days), i.hh_member_worked_past7days_age_group,
+
+           i.hh_member_worked_past7days_by_age_group = ifelse(!is.na(worked_in_past_7_days), worked_in_past_7_days,
                                                               NA_character_),
+           int.worked_in_past_7_days = case_when(worked_in_past_7_days == 1725 ~ "Worked at least one hour for pay or profit",
+                                                 worked_in_past_7_days == 1725 ~ "Did not work, but was actively searching for work",
+                                                 worked_in_past_7_days == 1725 ~ "Did not work, and was not actively searching for work"),
+           
+           i.hh_member_worked_past7days_age_group_1_4 = ifelse(i.hh_member_worked_past7days_age_category %in% c("age_1_4"), 
+                                                         int.worked_in_past_7_days, NA_character_),
+           i.hh_member_worked_past7days_age_group_5_11 = ifelse(i.hh_member_worked_past7days_age_category %in% c("age_5_11"), 
+                                                          int.worked_in_past_7_days, NA_character_),
+           i.hh_member_worked_past7days_age_group_12_17 = ifelse(i.hh_member_worked_past7days_age_category %in% c("age_12_17"),
+                                                           int.worked_in_past_7_days, NA_character_),
+           i.hh_member_worked_past7days_age_group_18_25 = ifelse(i.hh_member_worked_past7days_age_category %in% c("age_18_25"), 
+                                                           int.worked_in_past_7_days, NA_character_),
+           i.hh_member_worked_past7days_age_group_26_59 = ifelse(i.hh_member_worked_past7days_age_category %in% c("age_26_59"), 
+                                                           int.worked_in_past_7_days, NA_character_),
+           i.hh_member_worked_past7days_age_group_above_59 = ifelse(i.hh_member_worked_past7days_age_category %in% c("age_greater_59"), 
+                                                              int.worked_in_past_7_days, NA_character_),           
+
+           # i.hh_member_worked_atleast_1hr_for_pay_or_profit = ifelse(int.worked_in_past_7_days %in% c("Worked at least one hour for pay or profit"), i.hh_member_worked_past7days_age_category,
+           #                                                    NA_character_),
+           # i.hh_member_didnt_work_but_actively_searched_for_work = ifelse(int.worked_in_past_7_days %in% c("Worked at least one hour for pay or profit"), i.hh_member_worked_past7days_age_category,
+           #                                                    NA_character_),
+           # i.hh_member_neither_worked_nor_searched_for_work = ifelse(int.worked_in_past_7_days %in% c("Did not work, and was not actively searching for work"), i.hh_member_worked_past7days_age_category,
+           # NA_character_),
+
 
                    # protection
 
@@ -112,9 +159,21 @@ create_composites_verification <- function(input_df) {
 
   i.children_attending_school_by_age_group = ifelse(!is.na(attending_school_now), attending_school_now,
                                                     NA_character_),
-  i.school_going_age_group_by_gender = ifelse(!is.na(attending_school_now), i.school_going_age_group,
-                                                 NA_character_)) %>%
-
+  
+  i.hh_children_attending_school_age_group_3_5 = ifelse(i.school_going_age_group %in% c("age_3_5"), 
+                                                        attending_school_now, NA_character_),
+  i.hh_children_attending_school_age_group_6_12 = ifelse(i.school_going_age_group %in% c("age_6_12"), 
+                                                         attending_school_now, NA_character_),
+  i.hh_children_attending_school_age_group_13_18 = ifelse(i.school_going_age_group %in% c("age_13_18"),
+                                                          attending_school_now, NA_character_),
+  i.hh_children_attending_school_age_group_19_24 = ifelse(i.school_going_age_group %in% c("age_19_24"), 
+                                                          attending_school_now, NA_character_)) %>% 
+  
+  # i.children_attending_school_yes = ifelse(attending_school_now %in% c(1694), i.school_going_age_group,
+  #                                                 NA_character_),
+  # i.children_attending_school_no = ifelse(attending_school_now %in% c(1695), i.school_going_age_group,
+  #                                                  NA_character_)) %>% 
+  
       select(-c(starts_with("int.")))
 
 }
@@ -261,11 +320,23 @@ create_composites_sampled <- function(input_df) {
                              "mental_illness_no",  TRUE ~ NA_character_),
 
          i.hh_member_mh_by_age_group = ifelse(!is.na(i.hh_member_mh_state), i.hh_member_mh_state,
-                                              NA_character_),
-         i.hh_member_age_grp_mental_illness_yes = ifelse(i.hh_member_mh_state %in% c("mental_illness_yes"), i.mental_health_age_category,
-                                                   NA_character_),
-         i.hh_member_age_grp_mental_illness_no = ifelse(i.hh_member_mh_state %in% c("mental_illness_no"), i.mental_health_age_category,
-                                                           NA_character_)
+                                                                        NA_character_),
+         
+         i.hh_mental_health_age_group_12_17 = ifelse(i.mental_health_age_category %in% c("between_12_and_17_years"), 
+                                                     i.hh_member_mh_state, NA_character_),                                   
+         i.hh_mental_health_age_group_18_25 = ifelse(i.mental_health_age_category %in% c("between_18_and_25_years"), 
+                                                     i.hh_member_mh_state, NA_character_),                                   
+         i.hh_mental_health_age_group_26_59 = ifelse(i.mental_health_age_category %in% c("between_26_and_59_years"), 
+                                                     i.hh_member_mh_state, NA_character_),                                   
+         i.hh_mental_health_age_group_above_59 = ifelse(i.mental_health_age_category %in% c("greater_than_59_years"), 
+                                                     i.hh_member_mh_state, NA_character_) 
+                                              
+                                              
+         # i.hh_member_mental_illness_yes = ifelse(i.hh_member_mh_state %in% c("mental_illness_yes"), i.mental_health_age_category,
+         #                                           NA_character_),
+         # i.hh_member_mental_illness_no = ifelse(i.hh_member_mh_state %in% c("mental_illness_no"), i.mental_health_age_category,
+                                                           # NA_character_)
+
      ) %>%
 
      select(-c(starts_with("int.")))
