@@ -80,14 +80,14 @@ df_mh_loop_hh_indicators <- mental_health_loop %>%
                             feel_so_hopeless %in%c("all_of_the_time", "most_of_the_time")|
                             feel_so_severely_upset_about_bad_things_that_happened %in%c("all_of_the_time", "most_of_the_time")|
                             often_unable_to_carry_out_essential_activities_due_to_feelings %in%c("all_of_the_time", "most_of_the_time") ~
-                            "yes_mental_illness", 
+                            "mental_illness_yes", 
                             feel_so_afraid %in%c("none_of_the_time")|
                               feel_so_angry %in%c("none_of_the_time")|
                               feel_so_uninterested_in_things %in%c("none_of_the_time")|
                               feel_so_hopeless %in%c("none_of_the_time")|
                               feel_so_severely_upset_about_bad_things_that_happened %in%c("none_of_the_time")|
                               often_unable_to_carry_out_essential_activities_due_to_feelings %in%c("none_of_the_time") ~
-                              "no_mental_illness",  TRUE ~ NA_character_)) %>% 
+                              "mental_illness_no",  TRUE ~ NA_character_)) %>% 
   group_by(uuid) %>% 
   summarise(
     int.hh_mh_entries = paste(int.hh_member_mh_state, collapse = " : ")
@@ -95,9 +95,9 @@ df_mh_loop_hh_indicators <- mental_health_loop %>%
   mutate(i.hh_mh =  case_when(str_detect(string = int.hh_mh_entries, 
                                          pattern = "mental_illness_yes") ~ "mental_illness_yes",
                               str_detect(string = int.hh_mh_entries, 
-                                         pattern = "mental_illness_mild") ~ "mental_illness_mild",
+                                         pattern = "mental_illness_no") ~ "mental_illness_no",
                               str_detect(string = int.hh_mh_entries, 
-                                         pattern = "none") ~ "none")) %>% 
+                                         pattern = NA_character_) ~ NA_character_)) %>% 
   select(-c(starts_with("int.")))
 
 # add mh_hh_indicators to hh data
@@ -110,6 +110,7 @@ df_with_composites_sampled <- df_hh_mh_data_merged %>%
   create_composites_sampled() %>% 
   mutate(strata = paste0(settlement, "_refugee"))
 
+# write_csv(x = df_with_composites_sampled, file = "outputs/sampled.csv")
 # make composite for mental health individual data
 df_with_composites_mh <- mental_health_loop %>%
   create_composites_mental_health() 
@@ -152,11 +153,10 @@ df_analysis_mental_health_loop <- analysis_after_survey_creation(input_svy_obj =
 ) %>% 
   mutate(level = "Individual")
 
-
 # merge analysis
 combined_analysis <- bind_rows(df_main_analysis, df_analysis_mental_health_loop) 
 
-
+# write_csv(x = combined_analysis, file = "outputs/tete.csv")
 # convert to percentage
 full_analysis_long <- combined_analysis %>%
   mutate(`mean/pct` = as.numeric(`mean/pct`),
@@ -173,18 +173,15 @@ full_analysis_long <- combined_analysis %>%
 # output analysis
 write_csv(full_analysis_long, paste0("outputs/", butteR::date_file_prefix(), "_ipe_sampled_further_analysis_sev.csv"), na="")
 
- #further analysis analysis
-
 
 # NFI analysis
 # water container
 df_overall_median_water_container_per_hh_size <- df_with_composites_sampled %>% 
-  filter(!is.na(i.water_container_category)) %>% 
   mutate(i.number_water_container = as.numeric(i.number_water_container)) %>% 
-  group_by(i.water_container_category) %>% 
+  group_by(i.water_container_category, i.tarpaulin_category) %>% 
   summarise(
     overall_disaggregation_median  = median(i.number_water_container, na.rm = TRUE))
-
+                          
 df_regional_median_water_container_per_hh_size <- df_with_composites_sampled %>% 
   filter(!is.na(i.water_container_category)) %>% 
   mutate(i.number_water_container = as.numeric(i.number_water_container)) %>% 
