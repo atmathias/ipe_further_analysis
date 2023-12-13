@@ -88,8 +88,10 @@ df_ref_pop <- read_csv("inputs/refugee_population_ipe.csv")
 df_with_composites <- df_combined_verification %>%
   create_composites_verification() %>% 
   mutate(settlement = progres_coalocationlevel2name,
-    strata = paste0(settlement, "_refugee"))
+    strata = paste0(settlement, "_refugee")) %>% 
+  janitor::remove_empty(which = "cols") 
 
+ write_csv(x = df_with_composites, file = "outputs/qqq.csv")
 # more indicators to add to hh data
 df_hh_level_indicator_data <- df_combined_verification %>%
     mutate(int.hoh_single_female = ifelse(gender %in% c("Female") & relation_to_hoh %in% c("head_of_household") &
@@ -98,13 +100,11 @@ df_hh_level_indicator_data <- df_combined_verification %>%
         int.hh_with_child_outside_of_home = case_when(progres_relationshiptofpname %in% c("Focal Point") & child_currently_not_living_with_you %in% c(1694) ~ "yes",
                                                      progres_relationshiptofpname %in% c("Focal Point") & child_currently_not_living_with_you %in% c(1695) ~ "no",
                                                      TRUE ~ NA_character_),
-        int.hh_with_disabled_member =  case_when(difficulty_seeing %in% c(1706 , 1707)|difficulty_hearing %in% c(1706 , 1707)|
-                                              difficulty_walking %in% c(1706 , 1707)|difficulty_remembering %in% c(1706 , 1707)|
-                                              difficulty_selfcare %in% c(1706 , 1707)|difficulty_communicating %in% c(1706 , 1707)~ "yes_disability",
-                                              difficulty_seeing %in% c(1704 , 1705)|difficulty_hearing %in% c(1704 , 1705)|
-                                              difficulty_walking %in% c(1704 , 1705)|difficulty_remembering %in% c(11704 , 1705)|
-                                              difficulty_selfcare %in% c(1704 , 1705)|difficulty_communicating %in% c(1704 , 1705)~
-                                     "no_disability", TRUE ~ NA_character_),
+        int.hh_with_disabled_member =  case_when(if_any(c(difficulty_seeing, difficulty_hearing, difficulty_walking, difficulty_remembering, 
+                                                          difficulty_selfcare, difficulty_communicating),  ~ .x %in% c(1706 , 1707)) ~ "yes_disability",
+                                                 if_any(c(difficulty_seeing, difficulty_hearing, difficulty_walking, difficulty_remembering,
+                                                          difficulty_selfcare, difficulty_communicating), ~ .x %in% c(1704 , 1705)) ~ "no_disability", 
+                                                    TRUE ~ NA_character_),
         int.hoh_child = ifelse(progres_age <= 17 & relation_to_hoh %in% c("head_of_household"), "yes", "no"),
         int.hh_children_worked_forpayment = case_when(progres_relationshiptofpname %in% c("Focal Point") & children_5_17_years_working_to_support_hh_for_payment %in% c(1694) ~ "yes",
                                                     progres_relationshiptofpname %in% c("Focal Point") &  children_5_17_years_working_to_support_hh_for_payment %in% c(1695) ~ "no",
@@ -153,8 +153,6 @@ df_hh_level_indicator_data <- df_combined_verification %>%
                                           female_members_under_18_got_married ,sold_house_or_land ,sold_last_female_animals ,accepted_high_risk_illegal_exploitative_temporary_jobs ,
                                           engaged_in_transactional_and_survival_sex, sent_household_members_to_beg), ~ .x %in% c(1818, 1819, 1820)) ~ "hh_lcsi_none", 
                                           TRUE ~ NA_character_)) %>%
-
- 
    group_by(uuid) %>%
    summarise(
        int.hh_disabled = paste(int.hh_with_disabled_member, collapse = " : "),
@@ -167,6 +165,7 @@ df_hh_level_indicator_data <- df_combined_verification %>%
        int.hh_child_dangerous_work_conditions = paste(int.hh_children_dangerous_work_conditions, collapse = " : "),
        int.lcsi_category = paste(int.lcsi_cat, collapse = " : ")
            ) %>%
+  
   mutate(i.hh_with_disabled_member =  case_when(str_detect(string = int.hh_disabled, pattern = "yes_disability") ~ "yes_disability",
                                  str_detect(string = int.hh_disabled, pattern = "no_disability") ~ "no_disability",
                                  str_detect(string = int.hh_disabled, pattern = NA_character_) ~ NA_character_),
@@ -204,7 +203,8 @@ df_hh_level_indicator_data <- df_combined_verification %>%
 
                 ) %>%
 
-  select(-c(starts_with("int.")))
+  select(-c(starts_with("int."))) %>% 
+  janitor::remove_empty(which = "cols") 
 
 
 # create weights ----------------------------------------------------------
@@ -243,7 +243,7 @@ df_analysis_hh_indicators <- analysis_after_survey_creation(input_svy_obj = ref_
 # merge analysis
 combined_analysis <- bind_rows(df_main_analysis, df_analysis_hh_indicators) 
 
-write_csv(x = combined_analysis, file = "outputs/verif.csv")
+# write_csv(x = combined_analysis, file = "outputs/verif.csv")
 # add labels
  full_analysis_labels <- combined_analysis %>%
   mutate(variable = ifelse(is.na(variable) | variable %in% c(""), variable_val, variable),
