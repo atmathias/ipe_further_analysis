@@ -88,11 +88,10 @@ df_ref_pop <- read_csv("inputs/refugee_population_ipe.csv")
 df_with_composites <- df_combined_verification %>%
   create_composites_verification() %>% 
   mutate(settlement = progres_coalocationlevel2name,
-    strata = paste0(settlement, "_refugee")) %>% 
+  strata = paste0(settlement, "_refugee")) %>% 
   janitor::remove_empty(which = "cols") 
 
- write_csv(x = df_with_composites, file = "outputs/qqq.csv")
-# more indicators to add to hh data
+ # more indicators to add to hh data
 df_hh_level_indicator_data <- df_combined_verification %>%
     mutate(int.hoh_single_female = ifelse(gender %in% c("Female") & relation_to_hoh %in% c("head_of_household") &
                                         progres_maritalstatusname %in% c("Single", "Divorced", "Separated", "Widowed"),
@@ -200,12 +199,9 @@ df_hh_level_indicator_data <- df_combined_verification %>%
                                str_detect(string = int.lcsi_category, pattern = "hh_lcsi_emergency") ~ "hh_lcsi_emergency",
                                str_detect(string = int.lcsi_category, pattern = "hh_lcsi_none") ~ "hh_lcsi_none",
                                str_detect(string = int.lcsi_category, pattern = NA_character_) ~ NA_character_)
-
                 ) %>%
-
   select(-c(starts_with("int."))) %>% 
   janitor::remove_empty(which = "cols") 
-
 
 # create weights ----------------------------------------------------------
 
@@ -214,7 +210,6 @@ ref_weight_table <- make_refugee_weight_table(input_df_ref = df_with_composites,
                                               input_refugee_pop = df_ref_pop)
 df_ref_with_weights <- df_with_composites %>% 
   left_join(ref_weight_table, by = "strata") 
-  
 
 hh_level_indicator_composite_data <- df_ref_with_weights %>% select(uuid, region, settlement, gender, i.hoh_by_gender, strata, weights)
 
@@ -256,13 +251,8 @@ combined_analysis <- bind_rows(df_main_analysis, df_analysis_hh_indicators)
 full_analysis_long <- full_analysis_labels %>%
   mutate(`mean/pct` = ifelse(select_type %in% c("integer") & !str_detect(string = variable, pattern = "^i\\."), `mean/pct`, `mean/pct`*100),
          `mean/pct` = round(`mean/pct`, digits = 2)) %>%
-  select(variable, variable_val_label, `Results(mean/percentage)` = `mean/pct`, 
-         n_unweighted, 
-         population, 
-         subset_1_name, 
-         subset_1_val,
-         level)
-
+  select(variable, variable_label, variable_val_label, `Results(mean/percentage)` = `mean/pct`, 
+         n_unweighted, population, subset_1_name, subset_1_val, level)
 
 # `Question`= variable,
 # `Question label`= variable_label,
@@ -274,7 +264,51 @@ full_analysis_long <- full_analysis_labels %>%
 # subset_1_name, 
 # subset_1_val)
 # output analysis
-write_csv(full_analysis_long, paste0("outputs/", butteR::date_file_prefix(), "_ipe_verification_further_analysis_sev.csv"), na="")
+
+# Add indicator to analysis
+df_indicator_attached <- full_analysis_long %>% 
+  mutate(indicator = case_when(variable %in% c("i.hoh_by_gender") ~ "Share of head of HHs, by gender",
+                               variable %in% c("i.disability_age_group_5_12", "i.disability_age_group_13_18",
+                                               "i.disability_age_group_19_24", "i.disability_age_group_25_59",
+                                               "i.disability_age_group_above_59") ~ "Prevalence of disability among the HH members age 5+, by age group and gender",
+                               variable %in% c("i.hoh_disability") ~ "Share of head of HHs with WGSS level 3 disability",
+                               variable %in% c("i.hh_member_with_chronic_condition") ~ "% of HH members who reported having chronic medical conditions (condition lasted for at least 3 months)",
+                               # variable %in% c("i.hh_member_with_chronic_condition_by_age_group") ~ "% of HH members who reported having chronic medical conditions (condition lasted for at least 3 months), by age group",
+                               variable %in% c("i.hh_member_with_chronic_condition_access_healthcare") ~ "% of HH members with chronic medical conditions (condition lasted for at least 3 months) who reported accessing healthcare services",
+                               variable %in% c("i.hh_member_with_chronic_condition_access_healthcare_by_age_group") ~ "% of HH members with chronic medical conditions (condition lasted for at least 3 months) who reported accessing healthcare services, by age group",
+                               variable %in% c("main_occupation_past_year") ~ "% of HH members by main occupation in Uganda in the past year prior to data collection",
+                               variable %in% c("i.hh_member_occupation_age_group_0_2", "i.hh_member_occupation_age_group_3_5",
+                                               "i.hh_member_occupation_age_group_6_12", "i.hh_member_occupation_age_group_13_18",
+                                               "i.hh_member_occupation_age_group_19_24", "i.hh_member_occupation_age_group_25_59",
+                                               "i.hh_member_occupation_age_group_above_59") ~ "% of HH members by main occupation in Uganda in the past year prior to data collection, by age group and gender",
+                               variable %in% c("worked_in_past_7_days") ~ "% of HH members reported having worked in the 7 days prior to data collection",
+                               variable %in% c("i.hh_member_worked_past7days_age_group_0_2", "i.hh_member_worked_past7days_age_group_3_5",
+                                               "i.hh_member_worked_past7days_age_group_6_12", "i.hh_member_worked_past7days_age_group_13_18",
+                                               "i.hh_member_worked_past7days_age_group_19_24", "i.hh_member_worked_past7days_age_group_25_59",
+                                               "i.hh_member_worked_past7days_age_group_above_59") ~ "% of HH members reported having worked in the 7 days prior to data collection, by age group and gender",
+                               variable %in% c("i.avg_time_children_worked_forpayment") ~ "Average time children worked per week for payment  as reported by the head of HH",
+                               variable %in% c("i.avg_time_children_worked_HHchores") ~ "Average time children worked per week on HH chores",
+                               variable %in% c("attending_school_now") ~ "% of school-aged children attending school at the time of data collection",
+                               variable %in% c("i.hh_children_attending_school_age_group_3_5", "i.hh_children_attending_school_age_group_6_12",
+                                               "i.hh_children_attending_school_age_group_13_18", "i.hh_children_attending_school_age_group_19_24") ~ 
+                                                "% of school-aged children attending school at the time of data collection, by age group and gender",
+                               variable %in% c("i.most_commonly_hh_need_rank_1", "i.most_commonly_hh_need_rank_2", "i.most_commonly_hh_need_rank_3") ~ 
+                                               "Top 3 most commonly reported primary HH needs at the time of data collection",
+                               variable %in% c("i.hoh_single_female") ~ "hoh_single_female",
+                               variable %in% c("i.hoh_child") ~ "Share of children headed HHs",
+                               variable %in% c("i.hh_with_child_outside_of_home_by_childlocation") ~ "% of HHs reported having at least one of their child not living with them by child's location at the time of data collection",
+                               variable %in% c("i.hh_with_disabled_member") ~ "% of HHs with a household member with WGSS level 3 disability",
+                               variable %in% c("i.hh_children_worked_forpayment") ~ "% of HHs reported having children working for payment",
+                               variable %in% c("i.hh_children_worked_Hhchores") ~ "% of HHs reported having children working on HH chores",
+                               variable %in% c("i.hh_children_dangerous_work_conditions") ~ "% of HHs reported having children working in dangerous conditions, by condition",
+                               variable %in% c("i.lcsi_cat") ~ "% of HHs in the emergency / crisis / stress / none category of the Livelihood Coping Strategy Index", 
+                               variable %in% c("i.chronic_illness_age_group_0_2", "i.chronic_illness_age_group_3_5", "i.chronic_illness_age_group_6_12",
+                                               "i.chronic_illness_age_group_13_18", "i.chronic_illness_age_group_19_24", "i.chronic_illness_age_group_25_59",
+                                               "i.chronic_illness_age_group_above_59") ~ "% of HH members who reported having chronic medical conditions (condition lasted for at least 3 months), by age group and gender")) %>% 
+   relocate(indicator, .before = variable) 
+  
+# output analysis
+write_csv(df_indicator_attached, paste0("outputs/", butteR::date_file_prefix(), "_ipe_verification_further_analysis_sev.csv"), na="")
 
 
 # other analysis (dependency ratio)
