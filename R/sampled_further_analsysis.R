@@ -110,7 +110,7 @@ df_with_composites_sampled <- df_hh_mh_data_merged %>%
   create_composites_sampled() %>% 
   mutate(strata = paste0(settlement, "_refugee"))
 
-# write_csv(x = df_with_composites_sampled, file = "outputs/sampled.csv")
+ # write_csv(x = df_with_composites_sampled, file = "outputs/sampled.csv")
 # make composite for mental health individual data
 df_with_composites_mh <- mental_health_loop %>%
   create_composites_mental_health() 
@@ -156,22 +156,42 @@ df_analysis_mental_health_loop <- analysis_after_survey_creation(input_svy_obj =
 # merge analysis
 combined_analysis <- bind_rows(df_main_analysis, df_analysis_mental_health_loop) 
 
+# add labels
+full_analysis_labels <- combined_analysis %>%
+  mutate(variable = ifelse(is.na(variable) | variable %in% c(""), variable_val, variable),
+         select_type = "select_one") %>%
+  mutate(variable_code = recode(variable, !!!setNames(df_questions_dap$question_code, df_questions_dap$question_name)),
+         variable_label = recode(variable, !!!setNames(df_questions_dap$question_label, df_questions_dap$question_name)),
+         variable_val_label = recode(variable_val, !!!choice_label_lookup))
+
+
 # write_csv(x = combined_analysis, file = "outputs/tete.csv")
 # convert to percentage
-full_analysis_long <- combined_analysis %>%
-  mutate(`mean/pct` = as.numeric(`mean/pct`),
-         `mean/pct` =  `mean/pct`*100,
-         `mean/pct` = round(`mean/pct`, digits = 2)) %>% 
-  select(variable, variable_val, `Results(mean/percentage)` = `mean/pct`, 
-         n_unweighted, 
-         population, 
-         subset_1_name, 
-         subset_1_val,
-         level) %>% 
+# convert to percentage
+full_analysis_long <- full_analysis_labels %>%
+  mutate(`mean/pct` = ifelse(select_type %in% c("integer") & !str_detect(string = variable, pattern = "^i\\."), `mean/pct`, `mean/pct`*100),
+         `mean/pct` = round(`mean/pct`, digits = 2)) %>%
+  select(variable, variable_label, variable_val_label, `Results(mean/percentage)` = `mean/pct`, 
+         n_unweighted, population, subset_1_name, subset_1_val, level) %>% 
   filter(!variable %in% c("i.hoh_by_gender"))
 
+# Add indicators to analysis
+df_indicator_attached <- full_analysis_long %>% 
+  mutate(indicator = case_when(variable %in% c("i.total_water_volume_per_person") ~ "% of HHs with amount of water per person per day",
+                                       variable %in% c("i.number_of_minutes_to_and_from_water_source") ~ "% of HHs with time spent to get to the water source, collect the water and go back home",
+                                       variable %in% c("i.sleeping_mat_num_average") ~ "% of HHs in possession of sleeping mats per person",
+                                       variable %in% c("i.blanket_num_average") ~ "% of HHs in possession of blankets per person",
+                                       variable %in% c("i.mosquito_net_num_average") ~ "% of HHs in possession of mosquito nets per person",
+                                       variable %in% c("i.hh_mh") ~ "% of HHs with an HH member experiencing at least one mental health problem",
+                                       variable %in% c("i.hh_main_water_source") ~ "% of HHs using unimproved water sources for drinking/cooking",
+                                       variable %in% c("i.hh_latrine_type") ~ "% of HHs using unimproved latrine facilities",
+                                       variable %in% c("i.hh_mental_health_age_group_12_17", "i.hh_mental_health_age_group_18_25",
+                                                       "i.hh_mental_health_age_group_26_59", "i.hh_mental_health_age_group_above_59") ~ 
+                                                          "% of HH members aged 12 and above with at least one mental health problem reported, by age group and gender")) %>% 
+  relocate(indicator, .before = variable)
+                                       
 # output analysis
-write_csv(full_analysis_long, paste0("outputs/", butteR::date_file_prefix(), "_ipe_sampled_further_analysis_sev.csv"), na="")
+write_csv(df_indicator_attached, paste0("outputs/", butteR::date_file_prefix(), "_ipe_sampled_further_analysis_sev.csv"), na="")
 
 
 # NFI analysis
