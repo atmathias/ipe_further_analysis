@@ -194,9 +194,9 @@ create_composites_sampled <- function(input_df) {
                                                                 TRUE ~ NA_character_), 
           
           i.hh_latrine_type = case_when(latrine_type %in% c("covered_pit_latrine_with_a_slab", "ventilated_improved_pit_latrine", 
-                                                          "ecosan_compost_toilet", "flush_toilet") ~ "using_unimproved_latrine_no",
+                                                          "ecosan_compost_toilet", "flush_toilet") ~ "latrine_unimproved",
                                         latrine_type %in% c("uncovered_pit_latrine_without_a_slab", "covered_pit_latrine_without_a_slab", 
-                                                            "uncovered_pit_latrine_with_a_slab") ~ "using_unimproved_latrine_yes",
+                                                            "uncovered_pit_latrine_with_a_slab") ~ "latrine_improved",
                                                                       TRUE ~ NA_character_),
           
           i.total_water_volume_per_person = case_when(calc_total_volume_per_person < 15 ~ "less_than_20L_per_person_per_day",
@@ -213,17 +213,20 @@ create_composites_sampled <- function(input_df) {
           int.sleeping_mat_num_average = sleeping_mat_num/hh_size,
           i.sleeping_mat_num_average = case_when(int.sleeping_mat_num_average < 1 & sleeping_mat_cond %in% c("good", "moderate") ~ "below_1_per_person",
                                                int.sleeping_mat_num_average == 1 & sleeping_mat_cond %in% c("good", "moderate") ~ "1_per_person",
-                                               int.sleeping_mat_num_average > 1 & sleeping_mat_cond %in% c("good", "moderate") ~ "above_1_per_person"),
+                                               int.sleeping_mat_num_average > 1 & sleeping_mat_cond %in% c("good", "moderate") ~ "above_1_per_person",
+                                               TRUE ~ "0_sleeping_mat_per_person"),
       
           int.blanket_num_average = blanket_num/hh_size,
           i.blanket_num_average = case_when(int.blanket_num_average < 1 & blanket_cond %in% c("good", "moderate") ~ "below_1_per_person",
                                            int.blanket_num_average == 1 & blanket_cond %in% c("good", "moderate") ~ "1_per_person",
-                                           int.blanket_num_average > 1 & blanket_cond %in% c("good", "moderate") ~ "above_1_per_person"),
+                                           int.blanket_num_average > 1 & blanket_cond %in% c("good", "moderate") ~ "above_1_per_person",
+                                           TRUE ~ "0_blanket_per_person"),
       
           int.mosquito_net_num_average = mosquito_net_num/hh_size,
           i.mosquito_net_num_average = case_when(int.mosquito_net_num_average < 1 & mosquito_net_cond %in% c("good", "moderate") ~ "below_1_per_person",
                                             int.mosquito_net_num_average == 1 & mosquito_net_cond %in% c("good", "moderate") ~ "1_per_person",
-                                            int.mosquito_net_num_average > 1 & mosquito_net_cond %in% c("good", "moderate") ~ "above_1_per_person"),
+                                            int.mosquito_net_num_average > 1 & mosquito_net_cond %in% c("good", "moderate") ~ "above_1_per_person",
+                                            TRUE ~ "0_smosquito_net_per_person"),
 
           # i.hh_size_jerrycan_category = case_when((hh_size > 0 & hh_size <4)& jerry_can_cond %in%c("good", "moderate") ~ "between_1_and_3_HH_size",
           #                                         (hh_size > 3 & hh_size <7)& jerry_can_cond %in%c("good", "moderate") ~ "between_4_and_6_HH_size",
