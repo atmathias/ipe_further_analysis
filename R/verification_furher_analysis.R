@@ -91,6 +91,8 @@ df_with_composites <- df_combined_verification %>%
   strata = paste0(settlement, "_refugee")) %>% 
   janitor::remove_empty(which = "cols") 
 
+# write_csv(x = df_with_composites, file = "outputs/verification_data.csv")
+
  # more indicators to add to hh data
 df_hh_level_indicator_data <- df_combined_verification %>%
     mutate(int.hoh_single_female = ifelse(gender %in% c("Female") & relation_to_hoh %in% c("head_of_household") &
@@ -154,7 +156,7 @@ df_hh_level_indicator_data <- df_combined_verification %>%
                                           TRUE ~ NA_character_)) %>%
    group_by(uuid) %>%
    summarise(
-       int.hh_disabled = paste(int.hh_with_disabled_member, collapse = " : "),
+       ent.hh_disabled = paste(int.hh_with_disabled_member, collapse = " : "),
        int.child_outside_of_home = paste(int.hh_with_child_outside_of_home, collapse = " : "),
        int.single_female = paste(int.hoh_single_female, collapse = " : "),
        int.child_hoh = paste(int.hoh_child, collapse = " : "),
@@ -165,14 +167,18 @@ df_hh_level_indicator_data <- df_combined_verification %>%
        int.lcsi_category = paste(int.lcsi_cat, collapse = " : ")
            ) %>%
   
-  mutate(i.hh_with_disabled_member =  case_when(str_detect(string = int.hh_disabled, pattern = "yes_disability") ~ "yes_disability",
-                                 str_detect(string = int.hh_disabled, pattern = "no_disability") ~ "no_disability",
-                                 str_detect(string = int.hh_disabled, pattern = NA_character_) ~ NA_character_),
+  mutate(i.hh_with_disabled_member =  case_when(str_detect(string = ent.hh_disabled, pattern = "yes_disability") ~ "yes_disability",
+                                 !str_detect(string = ent.hh_disabled, pattern = "yes_disability") & 
+                                 str_detect(string = ent.hh_disabled, pattern = "no_disability")  ~ "no_disability"),
         i.hh_with_child_outside_of_home = case_when(str_detect(string = int.child_outside_of_home, pattern = "yes") ~ "yes",
-                            str_detect(string = int.child_outside_of_home, pattern = "no") ~ "no",
-                            str_detect(string = int.child_outside_of_home, pattern = NA_character_) ~ NA_character_),
-        i.hoh_single_female = ifelse(str_detect(string = int.single_female, pattern = "yes"), "yes", "no"),
-        i.hoh_child = ifelse(str_detect(string = int.child_hoh, pattern = "yes"), "yes", "no"),
+                             !str_detect(string = int.child_outside_of_home, pattern = "yes") & 
+                              str_detect(string = int.child_outside_of_home, pattern = "no") ~ "no"),
+        i.hoh_single_female = case_when(str_detect(string = int.single_female, pattern = "yes") ~ "yes", 
+                                        !str_detect(string = int.single_female, pattern = "yes") & 
+                                         str_detect(string = int.single_female, pattern = "no") ~ "no"),
+        i.hoh_child = case_when(str_detect(string = int.child_hoh, pattern = "yes") ~ "yes",
+                                !str_detect(string = int.child_hoh, pattern = "yes") & 
+                                  str_detect(string = int.child_hoh, pattern = "no") ~ "no"),
         i.hh_children_worked_forpayment = case_when(str_detect(string = int.child_worked_for_employment, pattern = "yes") ~ "yes",
                                   str_detect(string = int.child_worked_for_employment, pattern = "no") ~ "no",
                                   str_detect(string = int.child_worked_for_employment, pattern = NA_character_) ~ NA_character_),
@@ -203,6 +209,7 @@ df_hh_level_indicator_data <- df_combined_verification %>%
   select(-c(starts_with("int."))) %>% 
   janitor::remove_empty(which = "cols") 
 
+# write_csv(x =df_hh_level_indicator_data, file = "outputs/www.csv")
 # create weights ----------------------------------------------------------
 
 # refugee weights
@@ -211,8 +218,10 @@ ref_weight_table <- make_refugee_weight_table(input_df_ref = df_with_composites,
 df_ref_with_weights <- df_with_composites %>% 
   left_join(ref_weight_table, by = "strata") 
 
-hh_level_indicator_composite_data <- df_ref_with_weights %>% select(uuid, region, settlement, gender, i.hoh_by_gender, strata, weights)
-
+hh_level_indicator_composite_data <- df_ref_with_weights %>% select(uuid, region, settlement, gender, i.hoh_by_gender, strata, weights) %>% 
+group_by(uuid) %>% 
+  filter(row_number() == 1)
+  
 # set up design object ----------------------------------------------------
 
 ref_svy <- as_survey(.data = df_ref_with_weights, strata = strata, weights = weights)
@@ -223,9 +232,10 @@ df_main_analysis <- analysis_after_survey_creation(input_svy_obj = ref_svy,
   mutate(level = "Individual")
 
 # hh indicator analysis
-df_hh_indicator_data <- hh_level_indicator_composite_data %>% 
-  inner_join(df_hh_level_indicator_data, by = "uuid") 
+df_hh_indicator_data <- df_hh_level_indicator_data %>% 
+  left_join(hh_level_indicator_composite_data, by = "uuid") 
 
+# write_csv(df_hh_indicator_data, file = "outputs/tete.csv")
 # set up design object
 ref_svy_hh_indicators <- as_survey(.data = df_hh_indicator_data, strata = strata, weights = weights)
 # analysis
